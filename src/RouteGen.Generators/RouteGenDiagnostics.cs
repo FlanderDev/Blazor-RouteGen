@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace RouteGen.Generators;
 
-internal static class Diagnostics
+internal static class RouteGenDiagnostics
 {
     private const string Category = "RouteGen";
 

@@ -54,7 +54,7 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
             {
                 if (used.ContainsKey(page.MemberName))
                 {
-                    spc.ReportDiagnostic(Diagnostic.Create(Diagnostics.AmbiguousPageRouteMember, Location.None, page.MemberName));
+                    spc.ReportDiagnostic(Diagnostic.Create(RouteGenDiagnostics.AmbiguousPageRouteMember, Location.None, page.MemberName));
                     continue;
                 }
                 used[page.MemberName] = page;
