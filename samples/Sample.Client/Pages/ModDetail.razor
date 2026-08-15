@@ -1,0 +1,28 @@
+@page "/mod/{id:int}"
+@inject IModsApi ModsApi
+
+<PageTitle>Mod detail</PageTitle>
+
+@if (_mod is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h1>@_mod.Name</h1>
+    <p>By @_mod.Author</p>
+}
+
+<p><NavLink href="@Paths.Mods">&larr; Back to mods</NavLink></p>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Mod? _mod;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mod = await ModsApi.GetMod(Id);
+    }
+}

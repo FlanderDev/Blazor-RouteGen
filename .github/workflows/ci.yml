@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore RouteGen.sln
+
+      - name: Build
+        run: dotnet build RouteGen.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/RouteGen.Generators.Tests/RouteGen.Generators.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Pack RouteGen (generators)
+        run: dotnet pack src/RouteGen.Generators/RouteGen.Generators.csproj --configuration Release --no-build -o ./artifacts
+
+      - name: Pack RouteGen.Abstractions
+        run: dotnet pack src/RouteGen.Abstractions/RouteGen.Abstractions.csproj --configuration Release --no-build -o ./artifacts
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts/*.nupkg
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/RouteGen.Generators.Tests/TestResults/*.trx

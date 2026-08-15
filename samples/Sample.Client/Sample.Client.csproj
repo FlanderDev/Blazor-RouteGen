@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sample.Shared\Sample.Shared.csproj" />
+    <ProjectReference Include="..\..\src\RouteGen.Abstractions\RouteGen.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\RouteGen.Generators\RouteGen.Generators.csproj"
+                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Normally supplied automatically by RouteGen's build/RouteGen.targets when the package
+         is referenced via NuGet; added explicitly here because the sample references the
+         generator by ProjectReference instead (see comment in Sample.Server.csproj). -->
+    <AdditionalFiles Include="**/*.razor" Exclude="**/bin/**/*.razor;**/obj/**/*.razor" />
+  </ItemGroup>
+
+</Project>

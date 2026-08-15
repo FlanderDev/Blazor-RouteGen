@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Hard Roslyn analyzer packaging requirement: generator assemblies must target netstandard2.0. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- This project produces an analyzer, not a normal library consumers reference directly. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+
+    <PackageId>RouteGen</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>RouteGen contributors</Authors>
+    <Description>Incremental Roslyn source generators that eliminate hand-maintained route/URL constants in Blazor WebAssembly Hosted + ASP.NET Core solutions: a single attributed interface generates the MVC controller base class, the typed HttpClient implementation, and a Paths class from @page directives.</Description>
+    <PackageTags>roslyn;source-generator;aspnetcore;blazor;routing;codegen</PackageTags>
+    <RepositoryUrl>https://github.com/your-org/RouteGen</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Place the generator DLL where the compiler will find it, and ship the props/targets
+       that add generated .razor files as AdditionalFiles (Blazor's SDK doesn't do this by
+       default, since .razor is normally consumed as a RazorComponent item, not source text
+       available to generators). -->
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="build\RouteGen.props" Pack="true" PackagePath="build\RouteGen.props" />
+    <None Include="build\RouteGen.targets" Pack="true" PackagePath="build\RouteGen.targets" />
+    <None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+  </ItemGroup>
+
+</Project>

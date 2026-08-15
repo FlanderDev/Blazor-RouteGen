@@ -1,0 +1,107 @@
+name: Release
+
+# Triggered by pushing a tag like "v1.2.3". The leading "v" is stripped and used as the
+# NuGet package version for both RouteGen and RouteGen.Abstractions (they're versioned
+# together since they're meant to be installed as a matching pair).
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Tag '$TAG' does not look like a semantic version (expected vMAJOR.MINOR.PATCH[-suffix])." >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved package version: $VERSION"
+
+      - name: Restore
+        run: dotnet restore RouteGen.sln
+
+      - name: Build
+        run: dotnet build RouteGen.sln --configuration Release --no-restore -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test tests/RouteGen.Generators.Tests/RouteGen.Generators.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Pack RouteGen (generators)
+        run: dotnet pack src/RouteGen.Generators/RouteGen.Generators.csproj --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o ./artifacts
+
+      - name: Pack RouteGen.Abstractions
+        run: dotnet pack src/RouteGen.Abstractions/RouteGen.Abstractions.csproj --configuration Release --no-build -p:Version=${{ steps.version.outputs.version }} -o ./artifacts
+
+      - name: Verify expected packages were produced
+        run: |
+          ls -la ./artifacts
+          test -f ./artifacts/RouteGen.${{ steps.version.outputs.version }}.nupkg
+          test -f ./artifacts/RouteGen.Abstractions.${{ steps.version.outputs.version }}.nupkg
+
+      - name: Build sample solution (verifies the packages work end-to-end, not just that they exist)
+        run: |
+          dotnet build samples/Sample.Shared/Sample.Shared.csproj --configuration Release
+          dotnet build samples/Sample.Server/Sample.Server.csproj --configuration Release
+          dotnet build samples/Sample.Client/Sample.Client.csproj --configuration Release
+
+      - name: Zip ready-to-use sample solution
+        run: |
+          mkdir -p ./release-staging
+          zip -r ./release-staging/RouteGen-Sample-${{ steps.version.outputs.version }}.zip samples RouteGen.sln README.md LICENSE \
+            -x "*/bin/*" -x "*/obj/*"
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum *.nupkg > SHA256SUMS.txt
+          cd ..
+          mv artifacts/SHA256SUMS.txt release-staging/
+          cp artifacts/*.nupkg release-staging/
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ steps.version.outputs.version }}
+          path: release-staging/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: RouteGen ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          files: |
+            release-staging/*.nupkg
+            release-staging/SHA256SUMS.txt
+            release-staging/RouteGen-Sample-${{ steps.version.outputs.version }}.zip
+
+      # Optional: push straight to NuGet.org too, if a NUGET_API_KEY secret is configured.
+      # Safe to leave the secret unset — this step is skipped entirely rather than failing.
+      - name: Push to NuGet.org
+        if: ${{ secrets.NUGET_API_KEY != '' }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "release-staging/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
