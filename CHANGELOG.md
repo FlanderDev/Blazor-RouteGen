@@ -1,20 +1,28 @@
-# Changelog
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
-All notable changes to this project are documented here. Versions correspond to the `RouteGen`
-and `RouteGen.Abstractions` NuGet package versions, which are released together (see
-`.github/workflows/release.yml` — pushing a `vX.Y.Z` tag builds, tests, and publishes both).
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-## [Unreleased]
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.8" PrivateAssets="all" />
+  </ItemGroup>
 
-### Added
-- `ApiSurfaceGenerator`: emits an abstract MVC controller base and/or an `IHttpClientFactory`
-  client implementation from a single `[ApiRoute]`-decorated interface.
-- `PathsGenerator`: emits a static `Paths` class from `.razor` `@page` directives.
-- Diagnostics `RG0001`–`RG0008` and `RG0101`.
-- `RouteGen.Abstractions`: attribute vocabulary (`[ApiRoute]`, `[Get]`/`[Post]`/`[Put]`/`[Delete]`/`[Patch]`,
-  `[Query]`, `[Body]`, `[Route]`, `[HttpClientName]`, `[GeneratedPathName]`) and `ApiException`.
-- Sample Blazor WASM Hosted solution (`samples/`) demonstrating end-to-end usage.
-- CI workflow (build + test + pack on every push/PR) and release workflow (tag-triggered
-  GitHub Release with packages attached, optional NuGet.org publish).
+  <ItemGroup>
+    <ProjectReference Include="..\Sample.Shared\Sample.Shared.csproj" />
+    <ProjectReference Include="..\..\src\RouteGen.Abstractions\RouteGen.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\RouteGen.Generators\RouteGen.Generators.csproj"
+                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
 
-[Unreleased]: https://github.com/your-org/RouteGen/compare/main...HEAD
+  <ItemGroup>
+    <!-- Normally supplied automatically by RouteGen's build/RouteGen.targets when the package
+         is referenced via NuGet; added explicitly here because the sample references the
+         generator by ProjectReference instead (see comment in Sample.Server.csproj). -->
+    <AdditionalFiles Include="**/*.razor" Exclude="**/bin/**/*.razor;**/obj/**/*.razor" />
+  </ItemGroup>
+
+</Project>
