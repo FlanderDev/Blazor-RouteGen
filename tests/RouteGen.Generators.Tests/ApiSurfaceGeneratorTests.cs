@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
 using Xunit;
 
@@ -111,8 +113,8 @@ namespace App.Shared
             new Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary));
 
         var driver = Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver.Create(new ApiSurfaceGenerator().AsSourceGenerator());
-        driver.RunGeneratorsAndUpdateCompilation(serverCompilation, out _, out _);
-        var runResult = ((Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(serverCompilation, out var outputCompilation, out _)).GetRunResult();
+        driver = driver.RunGeneratorsAndUpdateCompilation(serverCompilation, out _, out _) as CSharpGeneratorDriver;
+        var runResult = driver.GetRunResult();
 
         var generated = runResult.Results.SelectMany(r => r.GeneratedSources).FirstOrDefault(s => s.HintName.Contains("ControllerBase"));
         Assert.Contains("ModsApiControllerBase", generated.SourceText?.ToString() ?? "");
