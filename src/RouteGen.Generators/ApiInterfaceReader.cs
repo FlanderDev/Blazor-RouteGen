@@ -33,16 +33,14 @@ internal static class ApiInterfaceReader
             .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.ApiRouteAttribute");
         if (apiRouteAttr is null) return null;
 
-        var model = new ApiInterfaceModel
-        {
-            Namespace = interfaceSymbol.ContainingNamespace.IsGlobalNamespace
+        var model = new ApiInterfaceModel(
+            @namespace: interfaceSymbol.ContainingNamespace.IsGlobalNamespace
                 ? ""
                 : interfaceSymbol.ContainingNamespace.ToDisplayString(),
-            InterfaceName = interfaceSymbol.Name,
-            BaseRoute = apiRouteAttr.ConstructorArguments.Length > 0
+            interfaceName: interfaceSymbol.Name,
+            baseRoute: apiRouteAttr.ConstructorArguments.Length > 0
                 ? apiRouteAttr.ConstructorArguments[0].Value as string ?? ""
-                : "",
-        };
+                : "");
 
         foreach (var namedArg in apiRouteAttr.NamedArguments)
         {
@@ -105,11 +103,8 @@ internal static class ApiInterfaceReader
         bool allowAnonymous = method.GetAttributes()
             .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.AllowAnonymousAttribute");
 
-        var methodModel = new ApiMethodModel
+        var methodModel = new ApiMethodModel(method.Name, verbInfo.Value.Verb, verbInfo.Value.Suffix)
         {
-            Name = method.Name,
-            Verb = verbInfo.Value.Verb,
-            RouteSuffix = verbInfo.Value.Suffix,
             HasAuthorize = methodAuth && !allowAnonymous,
             Roles = roles,
             Policy = policy,
@@ -156,10 +151,8 @@ internal static class ApiInterfaceReader
             var paramType = param.Type;
             bool isCancellationToken = paramType.ToDisplayString(FullyQualified) == "global::System.Threading.CancellationToken";
 
-            var paramModel = new ApiParameterModel
+            var paramModel = new ApiParameterModel(param.Name, paramType.ToDisplayString(FullyQualified))
             {
-                Name = param.Name,
-                TypeFullName = paramType.ToDisplayString(FullyQualified),
                 IsNullableOrOptional = param.HasExplicitDefaultValue || paramType.NullableAnnotation == NullableAnnotation.Annotated,
                 HasDefaultValue = param.HasExplicitDefaultValue,
                 DefaultValueLiteral = param.HasExplicitDefaultValue ? FormatDefault(param) : null,
@@ -189,12 +182,12 @@ internal static class ApiInterfaceReader
             if (isBody)
             {
                 if (sawBody)
-                    diagnostics.Add(Diagnostic.Create(Diagnostics.MultipleBodyParameters, GetLocation(method), method.Name));
+                    diagnostics.Add(Diagnostic.Create(RouteGenDiagnostics.MultipleBodyParameters, GetLocation(method), method.Name));
                 sawBody = true;
                 paramModel.Kind = ParameterKind.Body;
 
                 if (methodModel.Verb is "GET" or "DELETE")
-                    diagnostics.Add(Diagnostic.Create(Diagnostics.BodyOnNonBodyVerb, GetLocation(param), param.Name, method.Name, methodModel.Verb));
+                    diagnostics.Add(Diagnostic.Create(RouteGenDiagnostics.BodyOnNonBodyVerb, GetLocation(param), param.Name, method.Name, methodModel.Verb));
             }
             else if (isQuery)
             {
@@ -212,7 +205,7 @@ internal static class ApiInterfaceReader
             }
             else
             {
-                diagnostics.Add(Diagnostic.Create(Diagnostics.UnmatchedParameter, GetLocation(param), param.Name, method.Name));
+                diagnostics.Add(Diagnostic.Create(RouteGenDiagnostics.UnmatchedParameter, GetLocation(param), param.Name, method.Name));
                 // Fall back to treating it as a query parameter so the generator can still emit something usable.
                 paramModel.Kind = ParameterKind.Query;
             }
@@ -226,7 +219,7 @@ internal static class ApiInterfaceReader
                 !methodModel.Parameters.Any(p => p.MatchesRouteToken &&
                     string.Equals(p.RouteTokenNameOverride ?? p.Name, token.Name, System.StringComparison.OrdinalIgnoreCase)))
             {
-                diagnostics.Add(Diagnostic.Create(Diagnostics.UnmatchedRouteToken, GetLocation(method), combinedTemplate, method.Name, token.Name));
+                diagnostics.Add(Diagnostic.Create(RouteGenDiagnostics.UnmatchedRouteToken, GetLocation(method), combinedTemplate, method.Name, token.Name));
             }
         }
 
@@ -248,7 +241,7 @@ internal static class ApiInterfaceReader
         if (!ok)
         {
             diagnostics.Add(Diagnostic.Create(
-                Diagnostics.UnsupportedSimpleType, GetLocation(param), param.Name, method.Name, type.ToDisplayString()));
+                RouteGenDiagnostics.UnsupportedSimpleType, GetLocation(param), param.Name, method.Name, type.ToDisplayString()));
         }
     }
 
@@ -261,7 +254,7 @@ internal static class ApiInterfaceReader
             if (seen.TryGetValue(key, out var existing))
             {
                 diagnostics.Add(Diagnostic.Create(
-                    Diagnostics.RouteCollision, Location.None,
+                    RouteGenDiagnostics.RouteCollision, Location.None,
                     existing.Name, m.Name, model.InterfaceName, m.Verb, RouteTemplateParser.Combine(model.BaseRoute, m.RouteSuffix)));
             }
             else

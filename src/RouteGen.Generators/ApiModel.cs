@@ -5,14 +5,21 @@ namespace RouteGen.Generators;
 /// <summary>Parsed representation of a single <c>[ApiRoute]</c>-decorated interface.</summary>
 internal sealed class ApiInterfaceModel
 {
-    public string Namespace { get; set; } = "";
-    public string InterfaceName { get; set; } = "";
-    public string BaseRoute { get; set; } = "";
+    public string Namespace { get; }
+    public string InterfaceName { get; }
+    public string BaseRoute { get; }
     public string HttpClientName { get; set; } = "Default";
     public bool InterfaceLevelAuthorize { get; set; }
     public string? InterfaceLevelRoles { get; set; }
     public string? InterfaceLevelPolicy { get; set; }
     public List<ApiMethodModel> Methods { get; } = new();
+
+    public ApiInterfaceModel(string @namespace, string interfaceName, string baseRoute)
+    {
+        Namespace = @namespace;
+        InterfaceName = interfaceName;
+        BaseRoute = baseRoute;
+    }
 
     /// <summary>
     /// Generated type name stem, e.g. "Mods" from "IModsApi" (strips a leading "I" and a
@@ -35,9 +42,9 @@ internal sealed class ApiInterfaceModel
 
 internal sealed class ApiMethodModel
 {
-    public string Name { get; set; } = "";
-    public string Verb { get; set; } = "GET";
-    public string? RouteSuffix { get; set; }
+    public string Name { get; }
+    public string Verb { get; }
+    public string? RouteSuffix { get; }
     /// <summary>Full name of the Task&lt;T&gt; type argument, or null when the return type is bare Task.</summary>
     public string? ResponseTypeFullName { get; set; }
     public bool IsStreamResponse { get; set; }
@@ -46,6 +53,13 @@ internal sealed class ApiMethodModel
     public string? Policy { get; set; }
     public bool AllowAnonymous { get; set; }
     public List<ApiParameterModel> Parameters { get; } = new();
+
+    public ApiMethodModel(string name, string verb, string? routeSuffix)
+    {
+        Name = name;
+        Verb = verb;
+        RouteSuffix = routeSuffix;
+    }
 }
 
 internal enum ParameterKind
@@ -58,8 +72,8 @@ internal enum ParameterKind
 
 internal sealed class ApiParameterModel
 {
-    public string Name { get; set; } = "";
-    public string TypeFullName { get; set; } = "";
+    public string Name { get; }
+    public string TypeFullName { get; }
     public bool IsNullableOrOptional { get; set; }
     public bool HasDefaultValue { get; set; }
     public string? DefaultValueLiteral { get; set; }
@@ -67,4 +81,10 @@ internal sealed class ApiParameterModel
     public string? RouteTokenNameOverride { get; set; }
     public bool MatchesRouteToken { get; set; }
     public string? RouteConstraint { get; set; }
+
+    public ApiParameterModel(string name, string typeFullName)
+    {
+        Name = name;
+        TypeFullName = typeFullName;
+    }
 }
