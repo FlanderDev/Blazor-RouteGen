@@ -1,0 +1,4 @@
+<Project>
+  <!-- Intentionally empty. Present so `dotnet add package RouteGen` wires up build\RouteGen.props
+       automatically per NuGet convention; all real work happens in RouteGen.targets. -->
+</Project>

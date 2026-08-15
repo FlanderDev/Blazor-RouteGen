@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sample.Shared\Sample.Shared.csproj" />
+    <ProjectReference Include="..\..\src\RouteGen.Abstractions\RouteGen.Abstractions.csproj" />
+    <!-- Local sample references the generator by ProjectReference (as an Analyzer) instead of
+         the packed NuGet package, so `dotnet build` on this repo works without a prior
+         `dotnet pack` + local feed setup. A real consumer would instead run
+         `dotnet add package RouteGen`. -->
+    <ProjectReference Include="..\..\src\RouteGen.Generators\RouteGen.Generators.csproj"
+                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
