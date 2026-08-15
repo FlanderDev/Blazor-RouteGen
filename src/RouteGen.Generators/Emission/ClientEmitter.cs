@@ -207,7 +207,7 @@ internal static class ClientEmitter
     private static string FormatParameter(ApiParameterModel p)
     {
         var suffix = p.HasDefaultValue
-            ? $" = {p.DefaultValueLiteral}"
+            ? $" = {p.DefaultValueLiteral ?? "default"}"
             : p.Kind == ParameterKind.CancellationToken ? " = default" : "";
         return $"{p.TypeDisplayString} {p.Name}{suffix}";
     }

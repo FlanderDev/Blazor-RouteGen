@@ -149,7 +149,7 @@ internal static class ApiSurfaceParser
             if (isLastCancellationToken)
             {
                 parameterModels.Add(new ApiParameterModel(
-                    p.Name, p.Type.ToDisplayString(), false, p.HasExplicitDefaultValue, null,
+                    p.Name, p.Type.ToDisplayString(), false, p.HasExplicitDefaultValue, FormatDefaultValueLiteral(p),
                     ParameterKind.CancellationToken, null, true, true));
                 continue;
             }

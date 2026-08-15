@@ -1,23 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageId>RouteGen.Abstractions</PackageId>
+		<Version>0.1.0</Version>
+		<Authors>RouteGen contributors</Authors>
+		<Description>Attribute vocabulary and small runtime types (ApiException, etc.) used by RouteGen-generated code. Reference this package directly from Shared/Server/Client projects; it contains no source generators.</Description>
+		<PackageTags>roslyn;source-generator;aspnetcore;blazor;routing</PackageTags>
+		<RepositoryUrl>https://github.com/your-org/RouteGen</RepositoryUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
 
-    <PackageId>RouteGen.Abstractions</PackageId>
-    <Version>0.1.0</Version>
-    <Authors>RouteGen contributors</Authors>
-    <Description>Attribute vocabulary and small runtime types (ApiException, etc.) used by RouteGen-generated code. Reference this package directly from Shared/Server/Client projects; it contains no source generators.</Description>
-    <PackageTags>roslyn;source-generator;aspnetcore;blazor;routing</PackageTags>
-    <RepositoryUrl>https://github.com/your-org/RouteGen</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
+	</ItemGroup>
 
 </Project>

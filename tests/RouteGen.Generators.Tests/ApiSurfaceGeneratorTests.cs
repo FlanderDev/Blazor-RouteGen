@@ -55,6 +55,10 @@ namespace App.Shared
         Assert.Contains("[FromQuery] int page = 1", source);
         Assert.Contains("[FromBody] App.Shared.ModUploadDto dto", source);
 
+        // Contains-checks alone wouldn't have caught the CancellationToken default-value bug
+        // this test suite previously missed — assert the generated file actually compiles.
+        Assert.Empty(result.OutputCompilation.GetDiagnostics().Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+
         // No client should be emitted for a project that doesn't reference IHttpClientFactory.
         Assert.Null(result.GetGeneratedSource("Client.g.cs"));
     }
@@ -71,6 +75,8 @@ namespace App.Shared
         Assert.Contains("public sealed class HttpModsApi(IHttpClientFactory httpClientFactory) : IModsApi", source);
         Assert.Contains("httpClientFactory.CreateClient(\"App\")", source);
         Assert.Contains("throw new ApiException(HttpMethod.Get, url, response.StatusCode, body);", source);
+
+        Assert.Empty(result.OutputCompilation.GetDiagnostics().Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
 
         Assert.Null(result.GetGeneratedSource("ControllerBase.g.cs"));
     }
@@ -114,7 +120,7 @@ namespace App.Shared
 
         var driver = Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver.Create(new ApiSurfaceGenerator().AsSourceGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(serverCompilation, out _, out _) as CSharpGeneratorDriver;
-        var runResult = driver?.GetRunResult() ?? throw new Exception("ITS THE CAST YOU IDIOT!");
+        var runResult = driver.GetRunResult();
 
         var generated = runResult.Results.SelectMany(r => r.GeneratedSources).FirstOrDefault(s => s.HintName.Contains("ControllerBase"));
         Assert.Contains("ModsApiControllerBase", generated.SourceText?.ToString() ?? "");
@@ -257,6 +263,32 @@ namespace App.Shared
 
         // A warning must not block emission (only errors do).
         Assert.NotNull(result.GetGeneratedSource("Client.g.cs"));
+    }
+
+    [Fact]
+    public void Trailing_CancellationToken_With_Default_Value_Generates_Valid_Syntax()
+    {
+        // Regression test: HasExplicitDefaultValue is true but ExplicitDefaultValue is null
+        // for "= default" on a non-primitive struct type (a documented Roslyn quirk), which
+        // previously caused the parameter's default-value literal to interpolate as an empty
+        // string — producing invalid generated syntax like "CancellationToken ct = )" in both
+        // the controller base and the client, which in turn broke every other type declared in
+        // the same generated file (including HttpModsApi).
+        var result = GeneratorTestHarness.Run(ModsApiInterface, includeAspNetCore: true, includeHttpClientFactory: true);
+
+        Assert.Empty(result.Diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
+
+        var controllerSource = result.GetGeneratedSource("ControllerBase.g.cs");
+        Assert.Contains("CancellationToken ct = default);", controllerSource);
+        Assert.DoesNotContain("ct = )", controllerSource);
+
+        var clientSource = result.GetGeneratedSource("Client.g.cs");
+        Assert.Contains("CancellationToken ct = default)", clientSource);
+        Assert.DoesNotContain("ct = )", clientSource);
+
+        // The real assertion this bug broke: the file must actually compile. A syntax error in
+        // one generated type previously took down every other type declared in the same file.
+        Assert.Empty(result.OutputCompilation.GetDiagnostics().Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error));
     }
 
     private static System.IO.MemoryStream EmitToStream(Microsoft.CodeAnalysis.Compilation compilation)

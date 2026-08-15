@@ -106,7 +106,7 @@ internal static class ControllerEmitter
             _ => "",
         };
 
-        var suffix = p.HasDefaultValue ? $" = {p.DefaultValueLiteral}" : (p.Kind == ParameterKind.CancellationToken ? " = default" : "");
+        var suffix = p.HasDefaultValue ? $" = {p.DefaultValueLiteral ?? "default"}" : (p.Kind == ParameterKind.CancellationToken ? " = default" : "");
         return $"{binding}{p.TypeDisplayString} {p.Name}{suffix}";
     }
 
