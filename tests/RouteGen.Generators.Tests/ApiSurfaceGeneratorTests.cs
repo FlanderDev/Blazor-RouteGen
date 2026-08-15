@@ -1,6 +1,5 @@
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
+using Microsoft.CodeAnalysis;
 using Xunit;
 
 namespace RouteGen.Generators.Tests;
@@ -113,7 +112,7 @@ namespace App.Shared
             new Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary));
 
         var driver = Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver.Create(new ApiSurfaceGenerator().AsSourceGenerator());
-        driver = driver.RunGeneratorsAndUpdateCompilation(serverCompilation, out _, out _) as CSharpGeneratorDriver;
+        driver = driver.RunGeneratorsAndUpdateCompilation(serverCompilation, out _, out _);
         var runResult = driver.GetRunResult();
 
         var generated = runResult.Results.SelectMany(r => r.GeneratedSources).FirstOrDefault(s => s.HintName.Contains("ControllerBase"));
