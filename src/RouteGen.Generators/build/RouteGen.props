@@ -1,4 +1,9 @@
 <Project>
-  <!-- Intentionally empty. Present so `dotnet add package RouteGen` wires up build\RouteGen.props
-       automatically per NuGet convention; all real work happens in RouteGen.targets. -->
+  <!--
+    Nothing required here today: the analyzer is wired up automatically because the generator
+    DLL is packaged under analyzers/dotnet/cs. This file exists as a documented extension point
+    (e.g. future MSBuild items/properties for opting individual .razor files in or out of the
+    page-route generator) so consumers don't need a breaking package-layout change to pick up
+    such a feature later.
+  -->
 </Project>

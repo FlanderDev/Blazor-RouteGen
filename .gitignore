@@ -1,8 +1,5 @@
 bin/
 obj/
-artifacts/
 *.user
 .vs/
-.vscode/
-TestResults/
-*.trx
+artifacts/

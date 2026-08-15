@@ -1,0 +1,31 @@
+@page "/"
+@inject IModsApi ModsApi
+
+<h1>Mods</h1>
+
+@if (_result is null)
+{
+    <p>Loading…</p>
+}
+else
+{
+    <ul>
+        @foreach (var mod in _result.Items)
+        {
+            <li>
+                <!-- Generated Paths.ModDetail(id) — no hand-written "/mod/{id}" string. -->
+                <a href="@App.Client.Generated.Paths.ModDetail(mod.Id)">@mod.Name</a>
+                by @mod.Author (@mod.Downloads downloads)
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private ModListResult? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _result = await ModsApi.GetMods();
+    }
+}

@@ -1,23 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<LangVersion>latest</LangVersion>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<PackageId>RouteGen.Abstractions</PackageId>
-		<Version>0.1.0</Version>
-		<Authors>RouteGen contributors</Authors>
-		<Description>Attribute vocabulary and small runtime types (ApiException, etc.) used by RouteGen-generated code. Reference this package directly from Shared/Server/Client projects; it contains no source generators.</Description>
-		<PackageTags>roslyn;source-generator;aspnetcore;blazor;routing</PackageTags>
-		<RepositoryUrl>https://github.com/your-org/RouteGen</RepositoryUrl>
-		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<None Include="README.md" Pack="true" PackagePath="\" Condition="Exists('README.md')" />
-	</ItemGroup>
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>RouteGen.Abstractions</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Your Name</Authors>
+    <Description>Attributes and runtime support types (ApiException, HTTP verb attributes, ApiRoute, Query/Body/Route markers) for RouteGen, a Roslyn source generator that keeps Blazor WebAssembly client calls and ASP.NET Core MVC controller routes generated from a single shared interface.</Description>
+    <PackageTags>roslyn;source-generator;blazor;aspnetcore;routing;codegen</PackageTags>
+    <RepositoryUrl>https://github.com/YOUR_USERNAME/RouteGen</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
 
 </Project>
