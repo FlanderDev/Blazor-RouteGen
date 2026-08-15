@@ -1,0 +1,21 @@
+@page "/mod/{id:int}"
+@inject IModsApi ModsApi
+
+<h1>@(_mod?.Name ?? "Loading…")</h1>
+
+@if (_mod is not null)
+{
+    <p>By @_mod.Author — @_mod.Downloads downloads.</p>
+    <!-- Generated Paths.Home — no hand-written "/" string. -->
+    <a href="@App.Client.Generated.Paths.Home">Back to list</a>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private ModDto? _mod;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mod = await ModsApi.GetMod(Id);
+    }
+}

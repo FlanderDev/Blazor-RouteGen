@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- In a real solution, replace this with:
+         <PackageReference Include="RouteGen.Abstractions" Version="0.1.0" />
+         Shared only needs the attribute definitions; the generator itself runs in the Server
+         and Client projects below, which are the ones that need generated output. -->
+    <ProjectReference Include="..\..\src\RouteGen.Abstractions\RouteGen.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

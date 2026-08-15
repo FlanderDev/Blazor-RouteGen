@@ -1,45 +1,63 @@
 # RouteGen
 
 Roslyn incremental source generators that eliminate hand-maintained route/URL constants in
-Blazor WebAssembly **Hosted** + ASP.NET Core solutions. Declare an API surface **once**, as a
-plain C# interface in your Shared project; RouteGen generates the real ASP.NET Core MVC
-controller routing on the server and the real `HttpClient` calls on the client — from the same
-declaration — so the two structurally cannot drift apart.
+Blazor WebAssembly **Hosted** + ASP.NET Core solutions.
 
 ## The problem
 
-A typical Blazor WASM Hosted solution is three projects: `App.Server` (ASP.NET Core Web API),
-`App.Client` (Blazor WASM), `App.Shared` (DTOs + constants, referenced by both). Because the
-client can't use `LinkGenerator`/`IUrlHelper` (server-only, request-scoped), teams hand-write a
-constants class in Shared and *separately* declare the real route on the server controller.
-Nothing checks the two agree. In practice: someone uses the wrong constant in a
-`[Route]`/`[HttpGet]` attribute, ASP.NET Core silently combines it with the controller's base
-route into something like `api/profile/api/profile/mods`, and the client's request 404s. This
-compiles fine and fails silently at runtime.
+The typical Blazor WebAssembly Hosted solution shape is three projects — `App.Server`
+(ASP.NET Core Web API), `App.Client` (Blazor WebAssembly), `App.Shared` (DTOs + routes). Because
+the client can't use `LinkGenerator`/`IUrlHelper` (server-only), teams hand-write a static
+"constants" class in Shared and the server controller separately declares the *real* route.
+Nothing checks the two agree. In practice this breaks exactly the way you'd expect: someone uses
+the wrong constant in a `[Route]` attribute, ASP.NET Core silently combines it with the
+controller-level route into something like `api/profile/api/profile/mods`, and the client's
+request 404s. **This compiles fine and fails silently at runtime.**
 
-RouteGen removes the second, hand-maintained description entirely. You write the interface;
-the controller routing and the client's HTTP calls are both generated from it at compile time.
+RouteGen solves this at compile time: declare an API operation **once**, as a plain attributed
+C# interface in the Shared project, and generate everything else from it.
+
+```
+Shared:  [ApiRoute] interface  ──┬──►  Server generator  ──►  abstract controller base (real [Route]/[HttpGet]/... attributes)
+                                 └──►  Client generator   ──►  concrete HttpClient implementation
+```
+
+Because the generated controller base, the generated client, and the hand-written interface all
+derive from the same attributed declaration — read via the semantic model, across the normal
+project-reference boundary — there is exactly one source of truth and no way for client and
+server to disagree about a route.
+
+A second, independent generator does the same for Blazor page routes: it scans `@page`
+directives in `.razor` files and emits a strongly-typed `Paths` class, so `NavLink`/`href` values
+are never hand-typed either.
 
 ## Installation
 
 ```bash
-dotnet add package RouteGen.Abstractions   # in Shared, Server, and Client
-dotnet add package RouteGen                # in Server and Client (the generator itself)
+dotnet add package RouteGen.Abstractions
+dotnet add package RouteGen --version 0.1.0
 ```
 
-`RouteGen.Abstractions` contains the attribute definitions and `ApiException` — it's a normal
-library reference, needed everywhere the attributes or the exception type are used in source.
-`RouteGen` is the analyzer package (source generators only); it only needs to go in the projects
-that should get generated output (Server, Client), not Shared.
+`RouteGen.Abstractions` ships the attributes (`[ApiRoute]`, `[Get]`, `[Query]`, ...) and the
+`ApiException` runtime type — reference it from your Shared, Server, and Client projects.
+`RouteGen` is the analyzer package containing the generators themselves; add it (as
+`PrivateAssets="all"`, which `dotnet add package` sets automatically for analyzer packages) to
+whichever projects should actually emit generated code — normally Server and Client, **not**
+Shared, since Shared only needs the attribute *definitions*, not the generator output.
 
-`RouteGen` is a `DevelopmentDependency`, so it won't flow transitively to anything that
-references your Server or Client project — nothing to configure there.
+For the page-route generator, also add your `.razor` files as `AdditionalFiles` in the Client
+project:
 
-## Quick start
+```xml
+<ItemGroup>
+  <AdditionalFiles Include="**/*.razor" />
+</ItemGroup>
+```
 
-### 1. Declare the contract once, in Shared
+## The attribute vocabulary
 
 ```csharp
+// Shared project — the ONLY hand-written piece.
 [ApiRoute("api/mods", HttpClientName = "App")]
 public partial interface IModsApi
 {
@@ -47,11 +65,11 @@ public partial interface IModsApi
     Task<ModListResult> GetMods([Query] int page = 1, [Query] int pageSize = 18, [Query] string? search = null);
 
     [Get("{id:int}")]
-    Task<Mod> GetMod(int id);
+    Task<ModDto> GetMod(int id);
 
     [Post("upload")]
     [Authorize]
-    Task<Mod> Upload([Body] ModUploadDto dto);
+    Task<ModDto> Upload([Body] ModUploadDto dto);
 
     [Delete("{id:int}")]
     [Authorize(Roles = "Admin")]
@@ -59,308 +77,206 @@ public partial interface IModsApi
 }
 ```
 
-### 2. Server: write a thin controller against the generated base class
+- **`[ApiRoute("api/mods")]`** — interface-level base route. `HttpClientName` selects which
+  *named* `HttpClient` the generated client resolves via `IHttpClientFactory` (real solutions
+  commonly need more than one base address, e.g. one for `/api/*` and a separate one for
+  root-level auth endpoints). Defaults to `"Default"`.
+- **`[Get]` / `[Post]` / `[Put]` / `[Delete]` / `[Patch]`** — each takes an optional route-template
+  suffix string appended to the interface-level base route.
+- Route parameters are **inferred by matching method-parameter names against `{name}`/
+  `{name:constraint}` tokens** in the template — no separate `[Route]` needed per parameter. Use
+  `[Route("tokenName")]` on a parameter as an explicit override when the parameter name and the
+  token name must differ.
+- **`[Query]`** marks a parameter as a query-string parameter. Nullable/optional query parameters
+  are omitted from the generated client's query string when null, rather than emitting `?x=`.
+- **`[Body]`** marks the (at most one) parameter serialized as the JSON request body.
+- A trailing `CancellationToken` parameter is recognized specially — excluded from the URL and
+  body, and flows through into the generated `HttpClient` call.
+- **`[Authorize]` / `[Authorize(Roles = "...")]` / `[AllowAnonymous]`** on an interface method (or
+  the whole interface) are propagated by the server generator onto the generated abstract
+  controller's action methods.
+- Return type conventions: `Task` → no response body expected (non-2xx still throws
+  `ApiException`). `Task<T>` → deserialize the JSON response as `T`. `Task<Stream>` → raw
+  binary/file-download style endpoint, not forced through JSON deserialization.
 
-RouteGen emits `ModsApiControllerBase` (an abstract `ControllerBase` with the real
-`[Route]`/`[HttpGet]`/etc. already applied). You inherit it and override each action:
+## Writing the server: the concrete controller
+
+The generator emits an **abstract controller base** with real routing/binding/authorization
+attributes already applied (`ModsApiControllerBase` for `IModsApi`). You write one thin,
+ordinary controller against it:
 
 ```csharp
 public sealed class ModsController(IModsService service) : ModsApiControllerBase
 {
-    public override async Task<ActionResult<ModListResult>> GetMods(int page = 1, int pageSize = 18, string? search = null)
+    public override async Task<ActionResult<ModListResult>> GetMods(int page, int pageSize, string? search)
         => Ok(await service.GetMods(page, pageSize, search));
 
-    public override async Task<ActionResult<Mod>> GetMod(int id)
+    public override async Task<ActionResult<ModDto>> GetMod(int id)
         => await service.GetMod(id) is { } mod ? Ok(mod) : NotFound();
-
     // ...
 }
 ```
 
-You never write a route attribute or a route string. Registration needs nothing beyond normal
-controller discovery: `builder.Services.AddControllers()` / `app.MapControllers()`. That's one
-of the practical advantages of targeting controllers first — the future minimal-API emitter (see
-"Roadmap" below) will need an explicit `app.Map...()` call per surface; controllers don't.
+You never write a route attribute or a route string by hand — routing entirely comes from the
+generated base class. Note the generated base class's methods return `Task<ActionResult<T>>`
+rather than literally `Task<T>` — that's deliberate, not a bug: it's the idiomatic MVC pattern
+and lets your override return `NotFound()`, `BadRequest()`, `Forbid()`, etc., not just the happy
+path. The point of parity between the interface and the generated base class is the *route,
+parameters, and attributes*, not a literal interface implementation.
 
-**Why the return type differs from the interface.** The interface says `Task<ModListResult>`;
-the generated abstract method says `Task<ActionResult<ModListResult>>`. This is intentional, not
-a bug: the point of parity between the interface and the generated base class is the *route,
-parameters, and attributes*, not a literal interface implementation. `ActionResult<T>` is the
-idiomatic MVC return shape and lets your override return `NotFound()`, `BadRequest()`,
-`Forbid()`, etc., not just the happy path.
+Registration needs nothing beyond normal ASP.NET Core controller discovery —
+`builder.Services.AddControllers()` / `app.MapControllers()`. No extra generated registration
+call is required, which is one practical advantage of targeting classic controllers for v1 (see
+"Why controllers, not Minimal API" below).
 
-### 3. Client: register the generated implementation
+## Using the client
 
-RouteGen emits `HttpModsApi : IModsApi`, a concrete class that makes the real `HttpClient`
-calls:
+The generator emits a concrete implementation (`HttpModsApi` for `IModsApi`) that you register
+once:
 
 ```csharp
 builder.Services.AddHttpClient("App", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
 builder.Services.AddScoped<IModsApi, HttpModsApi>();
 ```
 
-Every Razor component now injects `IModsApi` and calls plain C# methods:
+Every Razor component just injects `IModsApi` and calls plain C# methods — no `HttpClient`, no
+URL strings, anywhere in UI code. Non-success responses throw `RouteGen.ApiException` (carrying
+the `HttpStatusCode` and raw response body) instead of a bare `HttpRequestException`.
 
-```csharp
-@inject IModsApi ModsApi
-...
-var mods = await ModsApi.GetMods(search: "torch");
+## Blazor page routes
+
+Add `@attribute [GeneratedPathName("ModDetail")]` to a component only when the default naming
+heuristic (derived from the `.razor` file's name) would be ambiguous or undesirable — e.g. two
+different components that would otherwise both produce a member named `Detail`. Otherwise it
+just works:
+
+```razor
+@page "/mod/{id:int}"
 ```
 
-No `HttpClient`, no URL strings, anywhere in UI code.
-
-### 4. Blazor page routes: the `Paths` class
-
-Separately from the API generator, RouteGen scans every `.razor` file in the consuming project
-for `@page "..."` directives and emits a static `Paths` class:
+produces
 
 ```csharp
 public static class Paths
 {
-    public const string Mods = "/";
+    public const string Home = "/";
     public static string ModDetail(int id) => $"/mod/{id}";
 }
 ```
 
-```razor
-<NavLink href="@Paths.ModDetail(mod.Id)">@mod.Name</NavLink>
-```
-
-**Member naming.** By default, the member name comes from the `.razor` file's own name
-(`ModDetail.razor` → `ModDetail`), converted to PascalCase; the folder path is *not* included.
-Two components with the same file name in different folders will collide — RouteGen reports
-`RG0101` (warning) and keeps the first one (by route, alphabetically) rather than guessing.
-Disambiguate with an explicit override:
-
-```razor
-@page "/admin/reports"
-@attribute [GeneratedPathName("AdminReports")]
-```
-
-This is the part of RouteGen most likely to need a manual nudge in a real project with lots of
-same-named `Index.razor` files — the override exists specifically for that.
-
-## Attribute vocabulary
-
-| Attribute | Target | Meaning |
-|---|---|---|
-| `[ApiRoute("api/mods", HttpClientName = "App")]` | interface | Base route for every method; which named `HttpClient` the generated client resolves via `IHttpClientFactory`. |
-| `[Get]`, `[Post]`, `[Put]`, `[Delete]`, `[Patch]` | method | HTTP verb, with an optional route-template suffix appended to the interface's base route. |
-| `[Query]` | parameter | Query-string parameter. Nullable/default parameters are omitted from the query string when null, rather than emitting `?x=`. |
-| `[Body]` | parameter | The (at most one) parameter serialized as the JSON request body. Only valid on POST/PUT/PATCH. |
-| `[Route("tokenName")]` | parameter | Explicit override: binds this parameter to a `{tokenName}` template token when the parameter's own name doesn't match it. Route parameters are otherwise inferred purely by name-matching against `{name}`/`{name:constraint}` tokens — no attribute needed in the common case. |
-| `[HttpClientName("Auth")]` | method | Overrides the interface-level `HttpClientName` for a single method (e.g. a login endpoint outside the `api/*` base address). |
-| `[Authorize]` / `[Authorize(Roles = "...")]` / `[AllowAnonymous]` | method | The real ASP.NET Core attributes (`Microsoft.AspNetCore.Authorization`). Copied verbatim onto the generated abstract controller method. |
-| `[GeneratedPathName("Name")]` | `.razor` file, via `@attribute` | Overrides the inferred `Paths` member name for that page. |
-
-A trailing `CancellationToken ct = default` parameter is recognized specially: excluded from the
-URL and body, and flows through into the generated `HttpClient` call.
-
-`Task` → no response body expected. `Task<T>` → deserializes the JSON response as `T`.
-`Task<Stream>` → returns the raw response stream without JSON deserialization, for
-file-download-style endpoints.
-
-## Error handling
-
-Generated client methods throw `RouteGen.Abstractions.ApiException` (carrying the HTTP method,
-request URI, status code, and raw response body) on any non-success status code, instead of a
-bare `HttpRequestException` from `EnsureSuccessStatusCode()`. Catch it like any other typed
-exception:
-
-```csharp
-try { await ModsApi.Upload(dto); }
-catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized) { /* ... */ }
-```
+in the `{RootNamespace}.Generated` namespace of the consuming project.
 
 ## Diagnostics
 
 RouteGen's entire value proposition is catching at compile time what currently fails silently at
-runtime, so these are real errors/warnings, not suggestions:
+runtime, so diagnostics are not optional:
 
-| ID | Severity | Meaning |
-|---|---|---|
-| `RG0001` | Error | Two methods on the same interface resolve to an identical route + HTTP verb. |
-| `RG0002` | Error | `[Body]` used on a `[Get]`/`[Delete]` method (no request body on those verbs). |
-| `RG0003` | Error | A `{token}` in the route template has no matching parameter. |
-| `RG0004` | Error | A parameter isn't a route token, `[Query]`, or `[Body]` — nothing tells RouteGen what to do with it. |
-| `RG0005` | Error | More than one parameter marked `[Body]`. |
-| `RG0006` | Warning | A `[Query]`/route parameter's type isn't a primitive/string/enum/Guid/DateTime/etc.; it won't have a well-defined URL representation. |
-| `RG0007` | Error | An `[ApiRoute]` interface member isn't a method returning `Task`/`Task<T>`. |
-| `RG0008` | Error | A method has no `[Get]`/`[Post]`/`[Put]`/`[Delete]`/`[Patch]` attribute. |
-| `RG0101` | Warning | Two `.razor` pages would generate the same `Paths` member name; see "Member naming" above. |
+| Id | Severity | What it catches |
+|----|----------|------------------|
+| RG0001 | Error | Two methods on the same interface produce an identical route + HTTP verb. |
+| RG0002 | Warning | `[Body]` used together with `[Get]`/`[Delete]`. |
+| RG0003 | Error | A `{token}` in the route template has no matching parameter. |
+| RG0004 | Error | A parameter doesn't match a route token and isn't `[Query]`/`[Body]`. |
+| RG0005 | Error | More than one parameter marked `[Body]`. |
+| RG0006 | Error | A route/query parameter's type isn't a primitive/string/enum/Guid/DateTime/etc. |
+| RG0007 | Error | Two `@page` directives would generate the same `Paths` member name. |
+| RG0008 | Error | A route template could not be parsed. |
 
-An interface with any **error**-level diagnostic doesn't get controller/client code generated
-for it at all (rather than emitting something partially wrong around the error); warnings don't
-block generation.
+## Sample
 
-## How cross-project discovery works
+`samples/` contains a minimal, real, end-to-end Blazor WebAssembly Hosted app: `App.Shared`
+holds `IModsApi`; `App.Server` has a thin `ModsController` over the generated abstract base;
+`App.Client` has Razor pages calling the generated `HttpModsApi` and using the generated `Paths`
+class from a `NavLink`. Run it with:
 
-Server and Client never declare the `[ApiRoute]` interface themselves — they only reference the
-Shared project that does. A naive syntax-tree-based generator would never see it, since
-`CreateSyntaxProvider` only sees declarations written in the *current* compilation's own source.
-RouteGen instead walks the compilation's referenced-assembly symbol graph (see
-`InterfaceDiscovery.cs`) looking for types carrying `RouteGen.Abstractions.ApiRouteAttribute`,
-which works uniformly whether the interface was declared in this compilation or a referenced
-one. This exact topology — Shared holds the interface, Server and Client are separate projects
-each with their own generator invocation — is covered by an explicit test
-(`Cross_Project_Boundary_Interface_Declared_In_Referenced_Assembly_Is_Discovered`), not assumed
-to work because it usually does.
+```bash
+dotnet run --project samples/App.Server
+```
 
-Each of Server and Client runs its own copy of the generator (that's how Roslyn analyzers work —
-one invocation per compilation) and independently decides what to emit:
+After a build, inspect the generated files under
+`samples/App.Server/obj/**/generated/RouteGen.Generators/RouteGen.Generators.ApiContractGenerator/`
+and the equivalent path under `App.Client/obj/**` to see the emitted controller base and client
+implementation.
 
-- References `Microsoft.AspNetCore.Mvc.ControllerBase`? → emits the abstract controller base.
-- References `Microsoft.Extensions.Http.IHttpClientFactory`? → emits the client implementation.
-- References both, or neither? → emits both, or neither (diagnostics still run either way).
+## Why controllers, not Minimal API, for v1
+
+Classic attribute-routed MVC controllers are the v1 server-side target. They're the more
+familiar, more debuggable starting point, with well-trodden `[Authorize]`/`[Route]` inheritance
+behavior (ASP.NET Core's attribute routing and controller/action discovery both correctly
+resolve class- and method-level attributes declared on an *abstract base* and picked up by a
+subclass that overrides without redeclaring them — verified as part of building this package,
+since it's subtle enough to be worth confirming rather than assuming).
+
+Minimal API's request-delegate model is more source-generator-friendly and trim/AOT-oriented,
+which is exactly why it's the natural **v2** target — but it needs an explicit
+`app.MapGroup(...)`/`IEndpointRouteBuilder` registration call that controllers don't. The same
+shared-interface front end (client generator, page-route generator, diagnostics) is designed to
+carry over unchanged when that emitter is added; only the server-side emission target changes.
+
+## Non-functional characteristics
+
+- Built as **incremental generators** (`IIncrementalGenerator`), not the legacy `ISourceGenerator`
+  API, for IDE responsiveness in real projects.
+- The generator assembly targets **netstandard2.0** (a hard Roslyn analyzer packaging
+  requirement); consuming projects are expected to be on modern .NET (this repo's sample targets
+  .NET 10, the current version at time of writing).
+- No runtime reflection is introduced by RouteGen's own generated code — routes, parameter
+  bindings, and attributes are resolved entirely at compile time into plain generated C#. This is
+  separate from (and doesn't fight) the fact that ASP.NET Core MVC controllers themselves rely on
+  the framework's own reflection-based controller/action discovery — an accepted characteristic
+  of choosing controllers as the v1 target, not something this package tries to work around.
+- Validated against the Shared/Server/Client project-reference topology as a first-class
+  scenario: Shared holds the interface; Server and Client are separate projects, each with its
+  own generator invocation reading the shared interface via the semantic model and emitting into
+  its own compilation.
+- Packaged as a correct Roslyn analyzer NuGet package: empty `lib/`, the generator DLL under
+  `analyzers/dotnet/cs/`, and `DevelopmentDependency`/`PrivateAssets="all"` set so the generator
+  doesn't leak into consumers' consumers. The attribute *definitions* and `ApiException` live in
+  the separate `RouteGen.Abstractions` package (referenced normally, not as an analyzer) since
+  consumers need to see those types in source — bundling them only inside the analyzer package
+  would make that impossible.
 
 ## Known limitations
 
-- **Performance on very large solutions.** Because interface discovery has to walk referenced
-  assembly symbols on every compilation snapshot (not just source syntax), this pipeline is
-  less incremental than a pure syntax-driven generator. `InterfaceDiscovery` skips assemblies
-  whose name starts with `System`/`Microsoft.`/`netstandard`/`mscorlib` as a cheap guard, but an
-  assembly named e.g. `Microsoft.MyCompany.Shared` would be skipped too — rename it, or adjust
-  the guard, if you hit this.
-- **Route templates are single-segment only.** No catch-all (`{*path}`) support, no
-  cross-segment tokens. Fine for the REST-shaped routes this package targets; not a general
-  ASP.NET Core routing-template implementer.
-- **`Paths` member naming** is filename-based, not path-based, by design (see above) — expect to
-  reach for `[GeneratedPathName]` on same-named files.
-- No design-time tooling beyond the compiler diagnostics: no VS extension, no code-fix
-  providers. (A code fix for the more mechanical diagnostics — e.g. adding a missing `[Query]` —
-  would be a reasonable follow-up if there's appetite for it.)
-- Reflection-based MVC controller/action discovery is a property of choosing **controllers** as
-  the v1 target, not something RouteGen's own generated code does — see "Why controllers, and
-  why not reflection" below.
+- Literal `{{`/`}}` escaping in route templates (for literal braces) isn't specially handled by
+  the simple template tokenizer used here — not a concern for the route/URL-constant use case
+  this package targets, but worth knowing if your templates ever need literal braces.
+- The page-route generator's member-naming heuristic is filename-based; use
+  `[GeneratedPathName("...")]` to disambiguate when two components would otherwise collide (see
+  RG0007).
+- Static asset URL prefix generation is not implemented.
 
-## Why controllers, and why not reflection
+## Explicitly out of scope for v1 (future work)
 
-The generator itself introduces **no runtime reflection**: routes, parameter bindings, and
-attributes are all resolved at compile time into plain generated C#. What *is* reflection-based
-is ASP.NET Core MVC's own controller/action discovery — an accepted characteristic of choosing
-classic attribute-routed controllers as the v1 target, not something this package tries to work
-around. Minimal API's request-delegate model is more source-generator-friendly and
-trim/AOT-oriented, which is exactly why it's noted below as the natural v2 target — but
-controllers are the more familiar, better-tooled, more debuggable starting point (mature
-`[Authorize]`/`[Route]` inheritance behavior, no need to introduce an explicit
-`app.Map...()`-per-surface registration step), so that's the deliberate choice for v1.
-
-Two subtle-but-standard .NET/ASP.NET Core behaviors this relies on, and which are covered by
-explicit tests rather than assumed:
-
-- Attributes like `[Authorize]`/`[AllowAnonymous]` placed on an **abstract** method are picked
-  up by a subclass that **overrides** that method without redeclaring them — standard
-  inherited-attribute resolution on overridden virtual/abstract members (`AuthorizeAttribute`
-  doesn't opt out of `Inherited = true`), which ASP.NET Core's action discovery uses directly.
-- A class-level `[Route("...")]` on the abstract base is honored by a concrete subclass that
-  declares no `[Route]` of its own — standard ASP.NET Core attribute-routing behavior for
-  inherited class-level route attributes.
-
-## Roadmap / explicitly out of scope for v1
-
-- **Minimal API as a second server-side emission target** (`MapGroup`/`IEndpointRouteBuilder`),
-  alongside — not replacing — the controller emitter. The shared attributed interface, the
-  client generator, the `Paths` generator, and all diagnostics are designed to carry over
-  unchanged; only the server-side emitter would be new.
+- **Minimal API as a second server-side generation target** (`MapGroup`/`IEndpointRouteBuilder`),
+  additive alongside the controller emitter, not a replacement for it.
 - OpenAPI/Swagger generation or interop.
-- Static-asset URL-prefix helpers (mentioned in the original problem statement as a possible
-  future extension; not built).
-- Code-fix providers for the diagnostics above (stretch goal, not required for v1).
+- Static-asset (`Assets`-style) URL helpers.
+- Any design-time tooling beyond compiler diagnostics (no VS extension; a code-fix provider for
+  the diagnostics above would be a reasonable stretch goal).
 
 ## Repository layout
 
 ```
 src/
-  RouteGen.Abstractions/     Attributes + ApiException — normal library, reference everywhere
-  RouteGen.Generators/       The two IIncrementalGenerators, packed as the "RouteGen" analyzer package
-tests/
-  RouteGen.Generators.Tests/ Snapshot-style generator tests (CSharpGeneratorDriver, no external testing framework needed)
+  RouteGen.Abstractions/   attributes + ApiException (normal package reference)
+  RouteGen.Generators/     the incremental generators (analyzer package)
 samples/
-  Sample.Shared/             The one hand-written IModsApi interface + DTOs
-  Sample.Server/             Thin ModsController : ModsApiControllerBase, ASP.NET Core Web API
-  Sample.Client/             Blazor WASM app consuming the generated HttpModsApi + Paths
-global.json                  Pins the .NET SDK version used by local/CI/release builds
-CHANGELOG.md                 Notable changes per released version
-.github/workflows/ci.yml       Build + test + pack on every push/PR
-.github/workflows/release.yml  Tag-triggered GitHub Release (+ optional NuGet.org publish)
+  App.Shared/              the one hand-written interface + DTOs
+  App.Server/              thin controller over the generated abstract base
+  App.Client/              Blazor WASM app calling the generated client + Paths
+.github/workflows/
+  release.yml              build+pack on every push/PR; on a v*.*.* tag, also
+                            attaches the built .nupkg files to a GitHub Release
 ```
 
-Why one generator project instead of three separate NuGet packages for controller/client/paths:
-they share the same parsing/model code (`Model/`, `Parsing/`) and are cheap to keep together;
-splitting them wouldn't reduce what a consumer has to install (Server and Client both need "the
-API generator" regardless of verb split) and would complicate the build. `PathsGenerator` is a
-separate `IIncrementalGenerator` class within the same assembly/package because it operates on
-an entirely different input (`AdditionalTexts`, not attributed symbols) and has nothing to share
-with the API-surface pipeline beyond the route-template tokenizer.
+Generator unit tests are intentionally excluded from this drop. If adding them later,
+golden-file/snapshot testing of generated source via `Microsoft.CodeAnalysis.CSharp.Testing` (or
+a snapshot library) against representative `ApiInterfaceModel` inputs is the recommended
+approach, plus an integration test asserting `[Authorize]` on an abstract base method is
+correctly discovered by ASP.NET Core when a subclass overrides it without redeclaring the
+attribute (see "Why controllers, not Minimal API" above).
 
-## Releasing
+## License
 
-Pushing a tag matching `vX.Y.Z` (optionally `vX.Y.Z-suffix` for prereleases, e.g. `v0.2.0-beta.1`)
-triggers `.github/workflows/release.yml`, which:
-
-1. Builds and runs the test suite.
-2. Packs `RouteGen` and `RouteGen.Abstractions` with `Version` set from the tag (the two are
-   versioned together — install them as a matching pair).
-3. Builds the sample solution against the freshly-packed output, so a release can't ship if the
-   packages don't actually work end to end.
-4. Publishes a GitHub Release with both `.nupkg` files, a `SHA256SUMS.txt`, and a ready-to-open
-   `RouteGen-Sample-X.Y.Z.zip` (the `samples/` solution plus the repo's `README`/`LICENSE`)
-   attached.
-5. If a `NUGET_API_KEY` repository secret is configured, also pushes both packages to
-   NuGet.org (`--skip-duplicate`, so re-running a release is safe). Leave the secret unset to
-   only publish to GitHub Releases.
-
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-```
-
-A `global.json` pins the SDK version (`8.0.400`, roll-forward `latestFeature`) so local builds,
-CI, and release builds all use the same toolchain rather than "whatever's newest on the runner".
-
-## Building locally
-
-```bash
-dotnet restore RouteGen.sln
-dotnet build RouteGen.sln
-dotnet test tests/RouteGen.Generators.Tests
-dotnet pack src/RouteGen.Generators/RouteGen.Generators.csproj -o ./artifacts
-dotnet pack src/RouteGen.Abstractions/RouteGen.Abstractions.csproj -o ./artifacts
-```
-
-The sample solution (`samples/`) references the generator via `ProjectReference` (as an
-`Analyzer` item) rather than the packed NuGet package, so `dotnet build RouteGen.sln` works
-without a prior `dotnet pack` + local NuGet feed. A real consumer installs the packed
-`RouteGen`/`RouteGen.Abstractions` packages instead, per "Installation" above.
-
-> **Note on this repository's provenance:** this repo was generated in an environment without a
-> .NET SDK or internet access to install one, so the code has **not** been compiled or run here.
-> The design follows established, well-documented Roslyn incremental-generator and ASP.NET Core
-> patterns throughout, but treat first `dotnet build` as the real first compile — see
-> "First build checklist" below for the likeliest rough edges.
-
-## First build checklist
-
-Things most likely to need a small fix on the first real `dotnet build`, given the above:
-
-1. **Package versions.** `Microsoft.CodeAnalysis.CSharp` (4.11.0), ASP.NET Core packages
-   (8.0.8), xunit (2.9.2) — pin to whatever's current when you restore; these were current as of
-   this writing but NuGet will simply fail to restore a yanked/superseded version rather than
-   silently substituting one.
-2. **`ClientEmitter`'s query-string building** uses `Uri.EscapeDataString(x.ToString()!)` for
-   non-string query values — fine for primitives/enums/Guid/DateTime, but double-check the
-   `DateTime`/`DateTimeOffset` default `ToString()` round-trips the way your server-side
-   `[FromQuery]` model binder expects; you may want `ToString("O")` for those instead.
-3. **`ApiSurfaceGenerator`'s per-interface error suppression** (skip emitting for an interface
-   with any error diagnostic) matches diagnostics to interfaces by checking whether the
-   diagnostic's message text contains the interface or method name, since `Diagnostic` doesn't
-   carry arbitrary payload. This is intentionally coarse; if a method name is a substring of
-   another identifier in a way that causes over-suppression in your codebase, tighten it to
-   parse the ID/interface out of the message more precisely.
-4. **`netstandard2.0` + C# 11 raw features**: the generator project sets `<LangVersion>latest</LangVersion>`
-   on a `netstandard2.0` target, which is fine for compiler-feature syntax (records, required
-   modern C# used in `Model/ApiModels.cs`) but worth confirming your installed SDK's default
-   toolset agrees — pin `<LangVersion>` explicitly (e.g. `12.0`) if you hit a version mismatch.
-5. **Sample.Client / Sample.Server** were written against the Blazor WASM Hosted + `net8.0`
-   shape described in the brief; if you're on a different .NET version, bump the
-   `<TargetFramework>` and package versions together across all six projects.
+MIT — see [LICENSE](LICENSE).
