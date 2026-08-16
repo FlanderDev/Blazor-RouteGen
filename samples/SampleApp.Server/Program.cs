@@ -1,5 +1,4 @@
 using SampleApp.Server.Services;
-using SampleApp.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +16,7 @@ app.MapControllers();
 
 // Serve the Blazor WebAssembly client for a true end-to-end "Hosted" experience.
 app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
-app.MapFallbackToFile("index.html");
+
+app.MapGet("/", () => "Hallo World");
 
 app.Run();

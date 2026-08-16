@@ -1,7 +1,7 @@
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 
 namespace RouteGen.Generators;
 
@@ -16,14 +16,14 @@ internal static class ApiInterfaceReader
         SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
             SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
-    private static readonly HashSet<SpecialType> SimpleSpecialTypes = new()
-    {
+    private static readonly HashSet<SpecialType> SimpleSpecialTypes =
+    [
         SpecialType.System_String, SpecialType.System_Boolean, SpecialType.System_Byte,
         SpecialType.System_SByte, SpecialType.System_Int16, SpecialType.System_UInt16,
         SpecialType.System_Int32, SpecialType.System_UInt32, SpecialType.System_Int64,
         SpecialType.System_UInt64, SpecialType.System_Single, SpecialType.System_Double,
         SpecialType.System_Decimal, SpecialType.System_Char,
-    };
+    ];
 
     public static ApiInterfaceModel? TryParse(
         INamedTypeSymbol interfaceSymbol,

@@ -1,7 +1,7 @@
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis;
 
 namespace RouteGen.Generators;
 
@@ -39,7 +39,7 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
             // Bail out entirely if this compilation doesn't reference RouteGen.Abstractions --
             // there is nothing to find, and no reason to pay for walking every referenced assembly.
             if (compilation.GetTypeByMetadataName("RouteGen.ApiRouteAttribute") is null)
-                return (Interfaces: new List<INamedTypeSymbol>(), IsServer: isServer);
+                return (Interfaces: [], IsServer: isServer);
 
             var found = new List<INamedTypeSymbol>();
             var seen = new HashSet<string>();
