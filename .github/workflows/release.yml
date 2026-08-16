@@ -1,18 +1,20 @@
 name: Release
 
-# Builds the abstractions + generator packages and publishes a GitHub Release with the ready-to-use
-# .nupkg files attached, on every push of a tag matching v*.*.* (e.g. v0.1.0). Also runs a
-# build-only check on every push/PR to main so breakage is caught before a tag is ever cut.
+# Builds the abstractions + generator packages on every push/PR to main and on every push to
+# "release". A push to "release" also cuts a GitHub Release: the version is read straight out of
+# RouteGen.Abstractions.csproj (the single source of truth -- both packages are packed with that
+# same version, so they can never drift apart), and a matching vX.Y.Z tag is created automatically.
 on:
   push:
-    branches: [main]
-    tags: ["v*.*.*"]
+    branches: [main, release]
   pull_request:
     branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,6 +23,17 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Read version from project file
+        id: version
+        run: |
+          VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' src/RouteGen.Abstractions/RouteGen.Abstractions.csproj)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not find <Version> in src/RouteGen.Abstractions/RouteGen.Abstractions.csproj"
+            exit 1
+          fi
+          echo "Resolved version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Restore
         run: dotnet restore RouteGen.sln
 
@@ -28,11 +41,14 @@ jobs:
         run: dotnet build RouteGen.sln --configuration Release --no-restore
 
       - name: Pack
+        # -p:Version pins both packages to the version read above, so RouteGen.Generators can
+        # never accidentally ship out of sync with RouteGen.Abstractions even if its own csproj
+        # wasn't updated to match.
         run: |
           dotnet pack src/RouteGen.Abstractions/RouteGen.Abstractions.csproj \
-            --configuration Release --no-build --output ./artifacts
+            --configuration Release --no-build --output ./artifacts -p:Version=${{ steps.version.outputs.version }}
           dotnet pack src/RouteGen.Generators/RouteGen.Generators.csproj \
-            --configuration Release --output ./artifacts
+            --configuration Release --output ./artifacts -p:Version=${{ steps.version.outputs.version }}
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
@@ -42,7 +58,7 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/release'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -55,6 +71,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # Tag is derived from the version read out of the project file in the build job above,
+          # not hand-pushed -- softprops/action-gh-release creates it if it doesn't exist yet.
+          tag_name: v${{ needs.build.outputs.version }}
+          name: v${{ needs.build.outputs.version }}
           files: ./artifacts/*.nupkg
           generate_release_notes: true
 
