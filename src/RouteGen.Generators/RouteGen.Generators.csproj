@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -7,19 +7,18 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <PackageId>RouteGen</PackageId>
-    <Version>0.1.0</Version>
-    <Authors>Your Name</Authors>
+    <Authors>FlanderDev</Authors>
     <Description>Roslyn incremental source generators that eliminate hand-maintained route/URL constants in Blazor WebAssembly Hosted + ASP.NET Core solutions. Declare an API once as an attributed interface in a shared project; RouteGen generates a routed abstract MVC controller base for the server and a strongly-typed HttpClient implementation for the client, plus a Paths class generated from @page directives.</Description>
     <PackageTags>roslyn;source-generator;blazor;aspnetcore;routing;codegen</PackageTags>
-    <RepositoryUrl>https://github.com/YOUR_USERNAME/RouteGen</RepositoryUrl>
+    <RepositoryUrl>https://github.com/FlanderDev/RouteGen</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoWarn>NU5128</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- Pack the generator DLL into analyzers/dotnet/cs so `dotnet add package` wires it up as an
