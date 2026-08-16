@@ -12,7 +12,7 @@ internal sealed class ApiInterfaceModel
     public bool InterfaceLevelAuthorize { get; set; }
     public string? InterfaceLevelRoles { get; set; }
     public string? InterfaceLevelPolicy { get; set; }
-    public List<ApiMethodModel> Methods { get; } = new();
+    public List<ApiMethodModel> Methods { get; } = [];
 
     public ApiInterfaceModel(string @namespace, string interfaceName, string baseRoute)
     {
@@ -52,7 +52,7 @@ internal sealed class ApiMethodModel
     public string? Roles { get; set; }
     public string? Policy { get; set; }
     public bool AllowAnonymous { get; set; }
-    public List<ApiParameterModel> Parameters { get; } = new();
+    public List<ApiParameterModel> Parameters { get; } = [];
 
     public ApiMethodModel(string name, string verb, string? routeSuffix)
     {

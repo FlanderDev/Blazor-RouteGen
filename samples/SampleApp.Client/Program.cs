@@ -1,7 +1,6 @@
-using SampleApp.Client;
-using SampleApp.Shared;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using SampleApp.Shared;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<SampleApp.Client.App>("#app");
