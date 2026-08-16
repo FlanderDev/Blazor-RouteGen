@@ -1,4 +1,5 @@
 @page "/mod/{id:int}"
+@using global::App.Shared
 @inject IModsApi ModsApi
 
 <h1>@(_mod?.Name ?? "Loading…")</h1>
