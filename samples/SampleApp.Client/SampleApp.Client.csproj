@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\App.Shared\App.Shared.csproj" />
+    <ProjectReference Include="..\SampleApp.Shared\SampleApp.Shared.csproj" />
     <ProjectReference Include="..\..\src\RouteGen.Abstractions\RouteGen.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\RouteGen.Generators\RouteGen.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>

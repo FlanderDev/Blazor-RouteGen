@@ -1,8 +1,8 @@
-using App.Server.Services;
-using App.Shared;
+using SampleApp.Server.Services;
+using SampleApp.Shared;
 using Microsoft.AspNetCore.Mvc;
 
-namespace App.Server.Controllers;
+namespace SampleApp.Server.Controllers;
 
 // Thin concrete controller: no route attributes, no route strings, anywhere. All routing,
 // binding, and [Authorize] behavior comes from the RouteGen-generated ModsApiControllerBase

@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "App.Server": {
+    "SampleApp.Server": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

@@ -5,8 +5,8 @@ Blazor WebAssembly **Hosted** + ASP.NET Core solutions.
 
 ## The problem
 
-The typical Blazor WebAssembly Hosted solution shape is three projects — `App.Server`
-(ASP.NET Core Web API), `App.Client` (Blazor WebAssembly), `App.Shared` (DTOs + routes). Because
+The typical Blazor WebAssembly Hosted solution shape is three projects — `SampleApp.Server`
+(ASP.NET Core Web API), `SampleApp.Client` (Blazor WebAssembly), `SampleApp.Shared` (DTOs + routes). Because
 the client can't use `LinkGenerator`/`IUrlHelper` (server-only), teams hand-write a static
 "constants" class in Shared and the server controller separately declares the *real* route.
 Nothing checks the two agree. In practice this breaks exactly the way you'd expect: someone uses
@@ -184,18 +184,18 @@ runtime, so diagnostics are not optional:
 
 ## Sample
 
-`samples/` contains a minimal, real, end-to-end Blazor WebAssembly Hosted app: `App.Shared`
-holds `IModsApi`; `App.Server` has a thin `ModsController` over the generated abstract base;
-`App.Client` has Razor pages calling the generated `HttpModsApi` and using the generated `Paths`
+`samples/` contains a minimal, real, end-to-end Blazor WebAssembly Hosted app: `SampleApp.Shared`
+holds `IModsApi`; `SampleApp.Server` has a thin `ModsController` over the generated abstract base;
+`SampleApp.Client` has Razor pages calling the generated `HttpModsApi` and using the generated `Paths`
 class from a `NavLink`. Run it with:
 
 ```bash
-dotnet run --project samples/App.Server
+dotnet run --project samples/SampleApp.Server
 ```
 
 After a build, inspect the generated files under
-`samples/App.Server/obj/**/generated/RouteGen.Generators/RouteGen.Generators.ApiContractGenerator/`
-and the equivalent path under `App.Client/obj/**` to see the emitted controller base and client
+`samples/SampleApp.Server/obj/**/generated/RouteGen.Generators/RouteGen.Generators.ApiContractGenerator/`
+and the equivalent path under `SampleApp.Client/obj/**` to see the emitted controller base and client
 implementation.
 
 ## Why controllers, not Minimal API, for v1
@@ -262,9 +262,9 @@ src/
   RouteGen.Abstractions/   attributes + ApiException (normal package reference)
   RouteGen.Generators/     the incremental generators (analyzer package)
 samples/
-  App.Shared/              the one hand-written interface + DTOs
-  App.Server/              thin controller over the generated abstract base
-  App.Client/              Blazor WASM app calling the generated client + Paths
+  SampleApp.Shared/              the one hand-written interface + DTOs
+  SampleApp.Server/              thin controller over the generated abstract base
+  SampleApp.Client/              Blazor WASM app calling the generated client + Paths
 .github/workflows/
   release.yml              build+pack on every push/PR; on a v*.*.* tag, also
                             attaches the built .nupkg files to a GitHub Release

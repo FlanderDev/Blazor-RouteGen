@@ -1,5 +1,5 @@
 @page "/"
-@using global::App.Shared
+@using global::SampleApp.Shared
 @inject IModsApi ModsApi
 
 <h1>Mods</h1>
@@ -15,7 +15,7 @@ else
         {
             <li>
                 <!-- Generated Paths.ModDetail(id) — no hand-written "/mod/{id}" string. -->
-                <a href="@App.Client.Generated.Paths.ModDetail(mod.Id)">@mod.Name</a>
+                <a href="@SampleApp.Client.Generated.Paths.ModDetail(mod.Id)">@mod.Name</a>
                 by @mod.Author (@mod.Downloads downloads)
             </li>
         }
