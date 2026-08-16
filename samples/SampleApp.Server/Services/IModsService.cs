@@ -1,6 +1,6 @@
-using App.Shared;
+using SampleApp.Shared;
 
-namespace App.Server.Services;
+namespace SampleApp.Server.Services;
 
 public interface IModsService
 {

@@ -1,6 +1,6 @@
 using RouteGen;
 
-namespace App.Shared;
+namespace SampleApp.Shared;
 
 // This is the ONLY hand-written piece of the API surface. Everything else — the server's
 // abstract controller base and the client's HttpClient implementation — is generated from it.

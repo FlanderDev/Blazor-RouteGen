@@ -1,4 +1,5 @@
-using App.Server.Services;
+using SampleApp.Server.Services;
+using SampleApp.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 

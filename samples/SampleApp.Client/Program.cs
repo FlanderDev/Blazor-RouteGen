@@ -1,10 +1,10 @@
-using App.Client;
-using App.Shared;
+using SampleApp.Client;
+using SampleApp.Shared;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.RootComponents.Add<App.Client.App>("#app");
+builder.RootComponents.Add<SampleApp.Client.App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // Named HttpClient "App" matches [ApiRoute(..., HttpClientName = "App")] in IModsApi, and is
