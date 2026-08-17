@@ -8,21 +8,14 @@ namespace FlanderDev.RouteGen.Generators;
 /// A parsed route template. The parser deliberately keeps ASP.NET Core route constraints as
 /// opaque strings; the generator consumes only the structural information it needs.
 /// </summary>
-internal sealed class RouteTemplate
+internal sealed class RouteTemplate(
+    string original,
+    IReadOnlyList<RouteTemplatePart> parts,
+    IReadOnlyList<RouteParameterPart> parameters)
 {
-    public string Original { get; }
-    public IReadOnlyList<RouteTemplatePart> Parts { get; }
-    public IReadOnlyList<RouteParameterPart> Parameters { get; }
-
-    public RouteTemplate(
-        string original,
-        IReadOnlyList<RouteTemplatePart> parts,
-        IReadOnlyList<RouteParameterPart> parameters)
-    {
-        Original = original;
-        Parts = parts;
-        Parameters = parameters;
-    }
+    public string Original { get; } = original;
+    public IReadOnlyList<RouteTemplatePart> Parts { get; } = parts;
+    public IReadOnlyList<RouteParameterPart> Parameters { get; } = parameters;
 }
 
 /// <summary>A single literal or route-parameter part of a route template.</summary>
@@ -31,14 +24,9 @@ internal abstract class RouteTemplatePart
 }
 
 /// <summary>Literal text in a route template.</summary>
-internal sealed class RouteLiteralPart : RouteTemplatePart
+internal sealed class RouteLiteralPart(string text) : RouteTemplatePart
 {
-    public string Text { get; }
-
-    public RouteLiteralPart(string text)
-    {
-        Text = text;
-    }
+    public string Text { get; } = text;
 }
 
 /// <summary>
@@ -46,24 +34,16 @@ internal sealed class RouteLiteralPart : RouteTemplatePart
 /// Constraint/default text is kept opaque so the parser does not need to know every ASP.NET
 /// Core constraint that may be added in the future.
 /// </summary>
-internal sealed class RouteParameterPart : RouteTemplatePart
+internal sealed class RouteParameterPart(
+    string name,
+    string? constraint,
+    bool optional,
+    string? defaultValue) : RouteTemplatePart
 {
-    public string Name { get; }
-    public string? Constraint { get; }
-    public bool Optional { get; }
-    public string? DefaultValue { get; }
-
-    public RouteParameterPart(
-        string name,
-        string? constraint,
-        bool optional,
-        string? defaultValue)
-    {
-        Name = name;
-        Constraint = constraint;
-        Optional = optional;
-        DefaultValue = defaultValue;
-    }
+    public string Name { get; } = name;
+    public string? Constraint { get; } = constraint;
+    public bool Optional { get; } = optional;
+    public string? DefaultValue { get; } = defaultValue;
 }
 
 /// <summary>

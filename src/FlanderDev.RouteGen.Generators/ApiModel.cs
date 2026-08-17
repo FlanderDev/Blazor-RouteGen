@@ -3,23 +3,17 @@ using System.Collections.Generic;
 namespace FlanderDev.RouteGen.Generators;
 
 /// <summary>Parsed representation of a single <c>[ApiRoute]</c>-decorated interface.</summary>
-internal sealed class ApiInterfaceModel
+internal sealed class ApiInterfaceModel(string @namespace, string interfaceName, string baseRoute)
 {
-    public string Namespace { get; }
-    public string InterfaceName { get; }
-    public string BaseRoute { get; }
+    public string Namespace { get; } = @namespace;
+    public string InterfaceName { get; } = interfaceName;
+    public string BaseRoute { get; } = baseRoute;
+    public string AbstractionsNamespace { get; set; } = "FlanderDev.RouteGen.Abstractions";
     public string HttpClientName { get; set; } = "Default";
     public bool InterfaceLevelAuthorize { get; set; }
     public string? InterfaceLevelRoles { get; set; }
     public string? InterfaceLevelPolicy { get; set; }
     public List<ApiMethodModel> Methods { get; } = [];
-
-    public ApiInterfaceModel(string @namespace, string interfaceName, string baseRoute)
-    {
-        Namespace = @namespace;
-        InterfaceName = interfaceName;
-        BaseRoute = baseRoute;
-    }
 
     /// <summary>
     /// Generated type name stem, e.g. "Mods" from "IModsApi" (strips a leading "I" and a
@@ -39,12 +33,12 @@ internal sealed class ApiInterfaceModel
     }
 }
 
-internal sealed class ApiMethodModel
+internal sealed class ApiMethodModel(string name, string verb, string? routeSuffix, RouteTemplate routeTemplate)
 {
-    public string Name { get; }
-    public string Verb { get; }
-    public string? RouteSuffix { get; }
-    public RouteTemplate RouteTemplate { get; }
+    public string Name { get; } = name;
+    public string Verb { get; } = verb;
+    public string? RouteSuffix { get; } = routeSuffix;
+    public RouteTemplate RouteTemplate { get; } = routeTemplate;
 
     /// <summary>Full name of the Task&lt;T&gt; type argument, or null when the return type is bare Task.</summary>
     public string? ResponseTypeFullName { get; set; }
@@ -54,14 +48,6 @@ internal sealed class ApiMethodModel
     public string? Policy { get; set; }
     public bool AllowAnonymous { get; set; }
     public List<ApiParameterModel> Parameters { get; } = [];
-
-    public ApiMethodModel(string name, string verb, string? routeSuffix, RouteTemplate routeTemplate)
-    {
-        Name = name;
-        Verb = verb;
-        RouteSuffix = routeSuffix;
-        RouteTemplate = routeTemplate;
-    }
 }
 
 internal enum ParameterKind
@@ -72,10 +58,10 @@ internal enum ParameterKind
     CancellationToken
 }
 
-internal sealed class ApiParameterModel
+internal sealed class ApiParameterModel(string name, string typeFullName)
 {
-    public string Name { get; }
-    public string TypeFullName { get; }
+    public string Name { get; } = name;
+    public string TypeFullName { get; } = typeFullName;
     public bool IsNullableOrOptional { get; set; }
     public bool HasDefaultValue { get; set; }
     public string? DefaultValueLiteral { get; set; }
@@ -83,10 +69,4 @@ internal sealed class ApiParameterModel
     public string? RouteTokenNameOverride { get; set; }
     public bool MatchesRouteToken { get; set; }
     public string? RouteConstraint { get; set; }
-
-    public ApiParameterModel(string name, string typeFullName)
-    {
-        Name = name;
-        TypeFullName = typeFullName;
-    }
 }

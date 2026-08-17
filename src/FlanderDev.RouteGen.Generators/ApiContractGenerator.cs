@@ -1,3 +1,4 @@
+using FlanderDev.RouteGen.Abstractions;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,9 +37,9 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
         {
             bool isServer = compilation.GetTypeByMetadataName("Microsoft.AspNetCore.Mvc.ControllerBase") is not null;
 
-            // Bail out entirely if this compilation doesn't reference FlanderDev.RouteGen.Abstractions --
+            // Bail out entirely if this compilation doesn't reference the RouteGen abstractions --
             // there is nothing to find, and no reason to pay for walking every referenced assembly.
-            if (compilation.GetTypeByMetadataName("FlanderDev.RouteGen.Abstractions.ApiRouteAttribute") is null)
+            if (FindType(compilation, nameof(ApiRouteAttribute)) is null)
                 return (Interfaces: [], IsServer: isServer);
 
             var found = new List<INamedTypeSymbol>();
@@ -105,9 +106,58 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
     private static void CollectIfAttributed(INamedTypeSymbol type, List<INamedTypeSymbol> results, HashSet<string> seen)
     {
         if (type.TypeKind != TypeKind.Interface) return;
-        if (!type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.ApiRouteAttribute")) return;
+        if (!type.GetAttributes().Any(a => IsAttribute(a.AttributeClass, nameof(ApiRouteAttribute)))) return;
 
         string key = type.ToDisplayString();
         if (seen.Add(key)) results.Add(type);
     }
+
+    private static INamedTypeSymbol? FindType(Compilation compilation, string simpleName)
+    {
+        var found = FindType(compilation.Assembly.GlobalNamespace, simpleName);
+        if (found is not null)
+            return found;
+
+        foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
+            found = FindType(assembly.GlobalNamespace, simpleName);
+            if (found is not null)
+                return found;
+        }
+
+        return null;
+    }
+
+    private static INamedTypeSymbol? FindType(INamespaceSymbol ns, string simpleName)
+    {
+        foreach (var member in ns.GetMembers())
+        {
+            if (member is INamespaceSymbol childNamespace)
+            {
+                var found = FindType(childNamespace, simpleName);
+                if (found is not null)
+                    return found;
+            }
+            else if (member is INamedTypeSymbol type && type.Name == simpleName)
+            {
+                return type;
+            }
+
+            if (member is INamedTypeSymbol container)
+            {
+                foreach (var nested in container.GetTypeMembers())
+                {
+                    if (nested.Name == simpleName)
+                        return nested;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsAttribute(INamedTypeSymbol? attributeType, string simpleName)
+        => attributeType is not null &&
+           (attributeType.Name == simpleName ||
+            attributeType.ToDisplayString().EndsWith("." + simpleName, System.StringComparison.Ordinal));
 }

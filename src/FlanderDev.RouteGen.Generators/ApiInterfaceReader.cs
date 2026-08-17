@@ -1,3 +1,4 @@
+using FlanderDev.RouteGen.Abstractions;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -29,21 +30,24 @@ internal static class ApiInterfaceReader
         List<Diagnostic> diagnostics)
     {
         var apiRouteAttr = interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.ApiRouteAttribute");
+            .FirstOrDefault(a => IsAttribute(a.AttributeClass, nameof(ApiRouteAttribute)));
         if (apiRouteAttr is null) return null;
 
         var model = new ApiInterfaceModel(
             @namespace: interfaceSymbol.ContainingNamespace.IsGlobalNamespace
-                ? ""
+                ? string.Empty
                 : interfaceSymbol.ContainingNamespace.ToDisplayString(),
             interfaceName: interfaceSymbol.Name,
             baseRoute: apiRouteAttr.ConstructorArguments.Length > 0
-                ? apiRouteAttr.ConstructorArguments[0].Value as string ?? ""
-                : "");
+                ? apiRouteAttr.ConstructorArguments[0].Value as string ?? string.Empty
+                : string.Empty);
+
+        model.AbstractionsNamespace = apiRouteAttr.AttributeClass?.ContainingNamespace?.ToDisplayString()
+            ?? model.AbstractionsNamespace;
 
         foreach (var namedArg in apiRouteAttr.NamedArguments)
         {
-            if (namedArg.Key == "HttpClientName" && namedArg.Value.Value is string hc)
+            if (namedArg.Key == nameof(ApiInterfaceModel.HttpClientName) && namedArg.Value.Value is string hc)
                 model.HttpClientName = hc;
         }
 
@@ -74,14 +78,13 @@ internal static class ApiInterfaceReader
 
         foreach (var attr in method.GetAttributes())
         {
-            var name = attr.AttributeClass?.ToDisplayString();
-            string? verb = name switch
+            string? verb = attr.AttributeClass?.Name switch
             {
-                "FlanderDev.RouteGen.Abstractions.GetAttribute" => "GET",
-                "FlanderDev.RouteGen.Abstractions.PostAttribute" => "POST",
-                "FlanderDev.RouteGen.Abstractions.PutAttribute" => "PUT",
-                "FlanderDev.RouteGen.Abstractions.DeleteAttribute" => "DELETE",
-                "FlanderDev.RouteGen.Abstractions.PatchAttribute" => "PATCH",
+                "GetAttribute" => "GET",
+                "PostAttribute" => "POST",
+                "PutAttribute" => "PUT",
+                "DeleteAttribute" => "DELETE",
+                "PatchAttribute" => "PATCH",
                 _ => null
             };
 
@@ -100,7 +103,7 @@ internal static class ApiInterfaceReader
 
         var (methodAuth, roles, policy) = ReadAuthorize(method.GetAttributes());
         bool allowAnonymous = method.GetAttributes()
-            .Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.AllowAnonymousAttribute");
+            .Any(a => IsAttribute(a.AttributeClass, nameof(AllowAnonymousAttribute)));
 
         string combinedTemplate = RouteTemplateParser.Combine(owner.BaseRoute, verbInfo.Value.Suffix);
         RouteTemplate routeTemplate = RouteTemplateParser.Parse(combinedTemplate);
@@ -171,13 +174,13 @@ internal static class ApiInterfaceReader
             }
 
             bool isQuery = param.GetAttributes()
-                .Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.QueryAttribute");
+                .Any(a => IsAttribute(a.AttributeClass, nameof(QueryAttribute)));
 
             bool isBody = param.GetAttributes()
-                .Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.BodyAttribute");
+                .Any(a => IsAttribute(a.AttributeClass, nameof(BodyAttribute)));
 
             var routeOverride = param.GetAttributes()
-                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.RouteAttribute");
+                .FirstOrDefault(a => IsAttribute(a.AttributeClass, nameof(RouteAttribute)));
 
             string? overrideTokenName = null;
             if (routeOverride is not null && routeOverride.ConstructorArguments.Length > 0)
@@ -289,10 +292,15 @@ internal static class ApiInterfaceReader
         }
     }
 
+    private static bool IsAttribute(INamedTypeSymbol? attributeType, string simpleName)
+        => attributeType is not null &&
+           (attributeType.Name == simpleName ||
+            attributeType.ToDisplayString().EndsWith("." + simpleName, System.StringComparison.Ordinal));
+
     private static void DetectRouteCollisions(
-        ApiInterfaceModel model,
-        List<Diagnostic> diagnostics)
-    {
+         ApiInterfaceModel model,
+         List<Diagnostic> diagnostics)
+     {
         var seen = new Dictionary<string, ApiMethodModel>();
 
         foreach (var m in model.Methods)
@@ -322,7 +330,7 @@ internal static class ApiInterfaceReader
         ImmutableArray<AttributeData> attributes)
     {
         var attr = attributes.FirstOrDefault(
-            a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.AuthorizeAttribute");
+            a => IsAttribute(a.AttributeClass, nameof(AuthorizeAttribute)));
 
         if (attr is null) return (false, null, null);
 
@@ -353,15 +361,9 @@ internal static class ApiInterfaceReader
     private static Location GetLocation(ISymbol symbol) =>
         symbol.Locations.FirstOrDefault() ?? Location.None;
 
-    private readonly struct HttpVerbInfo
+    private readonly struct HttpVerbInfo(string verb, string? suffix)
     {
-        public string Verb { get; }
-        public string? Suffix { get; }
-
-        public HttpVerbInfo(string verb, string? suffix)
-        {
-            Verb = verb;
-            Suffix = suffix;
-        }
+        public string Verb { get; } = verb;
+        public string? Suffix { get; } = suffix;
     }
 }

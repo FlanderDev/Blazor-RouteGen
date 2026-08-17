@@ -227,20 +227,13 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
     private static string EscapeString(string s) =>
         s.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-    private sealed class PageRouteInfo
+    private sealed class PageRouteInfo(
+        string memberName,
+        string route,
+        RouteTemplate template)
     {
-        public string MemberName { get; }
-        public string Route { get; }
-        public RouteTemplate Template { get; }
-
-        public PageRouteInfo(
-            string memberName,
-            string route,
-            RouteTemplate template)
-        {
-            MemberName = memberName;
-            Route = route;
-            Template = template;
-        }
+        public string MemberName { get; } = memberName;
+        public string Route { get; } = route;
+        public RouteTemplate Template { get; } = template;
     }
 }

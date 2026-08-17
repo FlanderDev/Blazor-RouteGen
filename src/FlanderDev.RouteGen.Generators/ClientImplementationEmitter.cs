@@ -40,7 +40,7 @@ internal static class ClientImplementationEmitter
         sb.AppendLine();
 
         foreach (var method in model.Methods)
-            EmitClientMethod(sb, indent + "    ", method);
+            EmitClientMethod(sb, indent + "    ", method, model.AbstractionsNamespace);
 
         sb.Append(indent).AppendLine("}");
 
@@ -51,7 +51,8 @@ internal static class ClientImplementationEmitter
     private static void EmitClientMethod(
         StringBuilder sb,
         string indent,
-        ApiMethodModel method)
+        ApiMethodModel method,
+        string abstractionsNamespace)
     {
         string returnType = method.ResponseTypeFullName is null
             ? "global::System.Threading.Tasks.Task"
@@ -133,7 +134,9 @@ internal static class ClientImplementationEmitter
         sb.Append(bodyIndent).Append("    var __errorBody = await __response.Content.ReadAsStringAsync(")
           .Append(ctParam is not null ? ctArg : "").AppendLine(");");
         sb.Append(bodyIndent)
-          .AppendLine("    throw new global::FlanderDev.RouteGen.Abstractions.ApiException(__response.StatusCode, __errorBody);");
+          .Append("    throw new global::")
+          .Append(abstractionsNamespace)
+          .AppendLine(".ApiException(__response.StatusCode, __errorBody);");
         sb.Append(bodyIndent).AppendLine("}");
 
         if (method.ResponseTypeFullName is null)
