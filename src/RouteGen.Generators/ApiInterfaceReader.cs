@@ -29,7 +29,7 @@ internal static class ApiInterfaceReader
         List<Diagnostic> diagnostics)
     {
         var apiRouteAttr = interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.ApiRouteAttribute");
+            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.ApiRouteAttribute");
         if (apiRouteAttr is null) return null;
 
         var model = new ApiInterfaceModel(
@@ -77,11 +77,11 @@ internal static class ApiInterfaceReader
             var name = attr.AttributeClass?.ToDisplayString();
             string? verb = name switch
             {
-                "RouteGen.GetAttribute" => "GET",
-                "RouteGen.PostAttribute" => "POST",
-                "RouteGen.PutAttribute" => "PUT",
-                "RouteGen.DeleteAttribute" => "DELETE",
-                "RouteGen.PatchAttribute" => "PATCH",
+                "RouteGen.Abstractions.GetAttribute" => "GET",
+                "RouteGen.Abstractions.PostAttribute" => "POST",
+                "RouteGen.Abstractions.PutAttribute" => "PUT",
+                "RouteGen.Abstractions.DeleteAttribute" => "DELETE",
+                "RouteGen.Abstractions.PatchAttribute" => "PATCH",
                 _ => null
             };
 
@@ -100,7 +100,7 @@ internal static class ApiInterfaceReader
 
         var (methodAuth, roles, policy) = ReadAuthorize(method.GetAttributes());
         bool allowAnonymous = method.GetAttributes()
-            .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.AllowAnonymousAttribute");
+            .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.AllowAnonymousAttribute");
 
         string combinedTemplate = RouteTemplateParser.Combine(owner.BaseRoute, verbInfo.Value.Suffix);
         RouteTemplate routeTemplate = RouteTemplateParser.Parse(combinedTemplate);
@@ -171,13 +171,13 @@ internal static class ApiInterfaceReader
             }
 
             bool isQuery = param.GetAttributes()
-                .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.QueryAttribute");
+                .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.QueryAttribute");
 
             bool isBody = param.GetAttributes()
-                .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.BodyAttribute");
+                .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.BodyAttribute");
 
             var routeOverride = param.GetAttributes()
-                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.RouteAttribute");
+                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.RouteAttribute");
 
             string? overrideTokenName = null;
             if (routeOverride is not null && routeOverride.ConstructorArguments.Length > 0)
@@ -322,7 +322,7 @@ internal static class ApiInterfaceReader
         ImmutableArray<AttributeData> attributes)
     {
         var attr = attributes.FirstOrDefault(
-            a => a.AttributeClass?.ToDisplayString() == "RouteGen.AuthorizeAttribute");
+            a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.AuthorizeAttribute");
 
         if (attr is null) return (false, null, null);
 
