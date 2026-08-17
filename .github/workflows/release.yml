@@ -78,6 +78,39 @@ jobs:
           files: ./artifacts/*.nupkg
           generate_release_notes: true
 
-      # Uncomment to also publish to nuget.org once NUGET_API_KEY is set as a repo secret:
-      # - name: Push to NuGet.org
-      #   run: dotnet nuget push "./artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+  publish:
+    needs: [build, release] # if release fails for some reason, then something is very wrong.
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions:
+        contents: read
+        id-token: write
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts
+
+      - name: NuGet login (OIDC → temporary API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: FlanderDev
+
+      - name: Publish packages to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          for package in ./artifacts/*.nupkg; do
+            echo "Publishing $package"
+            dotnet nuget push "$package" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json
+          done
