@@ -1,38 +1,33 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <PackageId>RouteGen</PackageId>
-    <Authors>FlanderDev</Authors>
-    <Description>Roslyn incremental source generators that eliminate hand-maintained route/URL constants in Blazor WebAssembly Hosted + ASP.NET Core solutions. Declare an API once as an attributed interface in a shared project; RouteGen generates a routed abstract MVC controller base for the server and a strongly-typed HttpClient implementation for the client, plus a Paths class generated from @page directives.</Description>
-    <PackageTags>roslyn;source-generator;blazor;aspnetcore;routing;codegen</PackageTags>
-    <RepositoryUrl>https://github.com/FlanderDev/RouteGen</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <DevelopmentDependency>true</DevelopmentDependency>
-    <NoWarn>NU5128</NoWarn>
-  </PropertyGroup>
-
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<PackageId>RouteGen</PackageId>
+		<Authors>FlanderDev</Authors>
+		<Description>Roslyn incremental source generators that eliminate hand-maintained route/URL constants in Blazor WebAssembly Hosted + ASP.NET Core solutions. Declare an API once as an attributed interface in a shared project; RouteGen generates a routed abstract MVC controller base for the server and a strongly-typed HttpClient implementation for the client, plus a Paths class generated from @page directives.</Description>
+		<PackageTags>roslyn;source-generator;blazor;aspnetcore;routing;codegen</PackageTags>
+		<RepositoryUrl>https://github.com/FlanderDev/RouteGen</RepositoryUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<DevelopmentDependency>true</DevelopmentDependency>
+		<NoWarn>NU5128</NoWarn>
+	</PropertyGroup>
 	<ItemGroup>
 		<None Remove="bin\Debug\netstandard2.0\\FlanderDev.RouteGen.Generators.dll" />
 	</ItemGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\FlanderDev.RouteGen.Abstractions\FlanderDev.RouteGen.Abstractions.csproj" />
 	</ItemGroup>
-	
-  <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" PrivateAssets="all" />
-  </ItemGroup>
-
-  <!-- Pack the generator DLL into analyzers/dotnet/cs so `dotnet add package` wires it up as an
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" PrivateAssets="all" />
+	</ItemGroup>
+	<!-- Pack the generator DLL into analyzers/dotnet/cs so `dotnet add package` wires it up as an
        analyzer, not a normal library reference. lib/ is intentionally left empty. -->
-  <ItemGroup>
-    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <None Include="build\RouteGen.props" Pack="true" PackagePath="build\RouteGen.props" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+		<None Include="build\RouteGen.props" Pack="true" PackagePath="build\RouteGen.props" />
+	</ItemGroup>
 </Project>
