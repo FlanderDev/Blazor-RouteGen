@@ -133,7 +133,7 @@ internal static class ClientImplementationEmitter
         sb.Append(bodyIndent).Append("    var __errorBody = await __response.Content.ReadAsStringAsync(")
           .Append(ctParam is not null ? ctArg : "").AppendLine(");");
         sb.Append(bodyIndent)
-          .AppendLine("    throw new global::RouteGen.ApiException(__response.StatusCode, __errorBody);");
+          .AppendLine("    throw new global::RouteGen.Abstractions.ApiException(__response.StatusCode, __errorBody);");
         sb.Append(bodyIndent).AppendLine("}");
 
         if (method.ResponseTypeFullName is null)

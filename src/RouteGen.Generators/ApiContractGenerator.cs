@@ -38,7 +38,7 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
 
             // Bail out entirely if this compilation doesn't reference RouteGen.Abstractions --
             // there is nothing to find, and no reason to pay for walking every referenced assembly.
-            if (compilation.GetTypeByMetadataName("RouteGen.ApiRouteAttribute") is null)
+            if (compilation.GetTypeByMetadataName("RouteGen.Abstractions.ApiRouteAttribute") is null)
                 return (Interfaces: [], IsServer: isServer);
 
             var found = new List<INamedTypeSymbol>();
@@ -105,7 +105,7 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
     private static void CollectIfAttributed(INamedTypeSymbol type, List<INamedTypeSymbol> results, HashSet<string> seen)
     {
         if (type.TypeKind != TypeKind.Interface) return;
-        if (!type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.ApiRouteAttribute")) return;
+        if (!type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.ApiRouteAttribute")) return;
 
         string key = type.ToDisplayString();
         if (seen.Add(key)) results.Add(type);
