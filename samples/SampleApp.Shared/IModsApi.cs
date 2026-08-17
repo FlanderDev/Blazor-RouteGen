@@ -1,4 +1,4 @@
-using RouteGen;
+using RouteGen.Abstractions;
 
 namespace SampleApp.Shared;
 

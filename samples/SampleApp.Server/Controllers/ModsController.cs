@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using SampleApp.Server.Services;
 using SampleApp.Shared;
+using SampleApp.Server.Services;
 
 namespace SampleApp.Server.Controllers;
 

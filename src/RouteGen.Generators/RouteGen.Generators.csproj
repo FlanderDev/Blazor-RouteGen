@@ -21,6 +21,10 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="bin\Debug\netstandard2.0\\RouteGen.Generators.dll" />
+  </ItemGroup>
+
   <!-- Pack the generator DLL into analyzers/dotnet/cs so `dotnet add package` wires it up as an
        analyzer, not a normal library reference. lib/ is intentionally left empty. -->
   <ItemGroup>

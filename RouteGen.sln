@@ -8,7 +8,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RouteGen.Generators", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApp.Shared", "samples\SampleApp.Shared\SampleApp.Shared.csproj", "{33333333-3333-3333-3333-333333333333}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleAppp.Server", "samples\SampleApp.Server\SampleAppp.Server.csproj", "{44444444-4444-4444-4444-444444444444}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApp.Server", "samples\SampleApp.Server\SampleApp.Server.csproj", "{44444444-4444-4444-4444-444444444444}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApp.Client", "samples\SampleApp.Client\SampleApp.Client.csproj", "{55555555-5555-5555-5555-555555555555}"
 EndProject

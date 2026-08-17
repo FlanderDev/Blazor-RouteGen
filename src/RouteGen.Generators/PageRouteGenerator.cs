@@ -8,22 +8,18 @@ namespace RouteGen.Generators;
 
 /// <summary>
 /// Scans every <c>.razor</c> file passed to the compilation as an <c>AdditionalText</c> for
-/// <c>@page "..."</c> directives (including route-parameter syntax such as <c>{id:int}</c> and
-/// optional <c>{id:int?}</c>), and emits a strongly-typed static <c>Paths</c> class with one
-/// member per distinct page route, so Blazor page routes require zero hand-written duplication.
-///
-/// Consuming projects must add their .razor files as AdditionalFiles, e.g.:
-/// <code>&lt;ItemGroup&gt;&lt;AdditionalFiles Include="**/*.razor" /&gt;&lt;/ItemGroup&gt;</code>
+/// <c>@page "..."</c> directives and emits a strongly-typed static <c>Paths</c> class.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class PageRouteGenerator : IIncrementalGenerator
 {
     private static readonly Regex PageDirectiveRegex = new(
-        "^\\s*@page\\s+\"([^\"]+)\"", RegexOptions.Compiled | RegexOptions.Multiline);
+        "^\\s*@page\\s+\"([^\"]+)\"",
+        RegexOptions.Compiled | RegexOptions.Multiline);
 
-    /// <summary>Opt-in override, e.g. <c>@attribute [GeneratedPathName("ModDetail")]</c>.</summary>
     private static readonly Regex GeneratedPathNameRegex = new(
-        "@attribute\\s+\\[\\s*GeneratedPathName\\s*\\(\\s*\"([^\"]+)\"\\s*\\)\\s*\\]", RegexOptions.Compiled);
+        "@attribute\\s+\\[\\s*GeneratedPathName\\s*\\(\\s*\"([^\"]+)\"\\s*\\)\\s*\\]",
+        RegexOptions.Compiled);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -35,7 +31,8 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
             .Where(static page => page is not null);
 
         var rootNamespace = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
-            options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns) && !string.IsNullOrEmpty(ns)
+            options.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns) &&
+            !string.IsNullOrEmpty(ns)
                 ? ns!
                 : "Generated");
 
@@ -45,18 +42,26 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
         {
             var (pages, ns) = pair;
             var validPages = pages.Where(p => p is not null).Select(p => p!).ToList();
+
             if (validPages.Count == 0) return;
 
             var used = new Dictionary<string, PageRouteInfo>();
             var members = new List<PageRouteInfo>();
 
-            foreach (var page in validPages.OrderBy(p => p.MemberName, System.StringComparer.Ordinal))
+            foreach (var page in validPages.OrderBy(
+                p => p.MemberName,
+                System.StringComparer.Ordinal))
             {
                 if (used.ContainsKey(page.MemberName))
                 {
-                    spc.ReportDiagnostic(Diagnostic.Create(RouteGenDiagnostics.AmbiguousPageRouteMember, Location.None, page.MemberName));
+                    spc.ReportDiagnostic(
+                        Diagnostic.Create(
+                            RouteGenDiagnostics.AmbiguousPageRouteMember,
+                            Location.None,
+                            page.MemberName));
                     continue;
                 }
+
                 used[page.MemberName] = page;
                 members.Add(page);
             }
@@ -65,42 +70,54 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
         });
     }
 
-    private static PageRouteInfo? ParsePage(AdditionalText text, System.Threading.CancellationToken ct)
+    private static PageRouteInfo? ParsePage(
+        AdditionalText text,
+        System.Threading.CancellationToken ct)
     {
         var sourceText = text.GetText(ct);
         if (sourceText is null) return null;
-        string content = sourceText.ToString();
 
+        string content = sourceText.ToString();
         var match = PageDirectiveRegex.Match(content);
+
         if (!match.Success) return null;
+
         string route = match.Groups[1].Value;
 
         string? overrideName = null;
         var nameMatch = GeneratedPathNameRegex.Match(content);
-        if (nameMatch.Success) overrideName = nameMatch.Groups[1].Value;
+        if (nameMatch.Success)
+            overrideName = nameMatch.Groups[1].Value;
 
         string fileName = System.IO.Path.GetFileNameWithoutExtension(text.Path);
         string memberName = overrideName ?? SanitizeIdentifier(fileName);
 
-        var tokens = RouteTemplateParser.ExtractTokens(route);
-        return new PageRouteInfo(memberName, route, tokens);
+        var template = RouteTemplateParser.Parse(route);
+        return new PageRouteInfo(memberName, route, template);
     }
 
     private static string SanitizeIdentifier(string name)
     {
         var sb = new StringBuilder();
+
         foreach (char c in name)
         {
-            if (char.IsLetterOrDigit(c) || c == '_') sb.Append(c);
+            if (char.IsLetterOrDigit(c) || c == '_')
+                sb.Append(c);
         }
+
         if (sb.Length == 0) return "Page";
         if (char.IsDigit(sb[0])) sb.Insert(0, '_');
+
         return sb.ToString();
     }
 
-    private static string EmitPathsClass(string rootNamespace, List<PageRouteInfo> pages)
+    private static string EmitPathsClass(
+        string rootNamespace,
+        List<PageRouteInfo> pages)
     {
         var sb = new StringBuilder();
+
         sb.AppendLine("// <auto-generated/>");
         sb.AppendLine("// GENERATED by RouteGen from @page directives — do not edit.");
         sb.AppendLine("#nullable enable");
@@ -113,60 +130,82 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
 
         foreach (var page in pages)
         {
-            if (page.Tokens.Count == 0)
+            if (page.Template.Parameters.Count == 0)
             {
-                sb.Append("        public const string ").Append(page.MemberName)
-                  .Append(" = \"").Append(EscapeString(page.Route)).AppendLine("\";");
+                sb.Append("        public const string ")
+                  .Append(page.MemberName)
+                  .Append(" = \"")
+                  .Append(EscapeString(page.Route))
+                  .AppendLine("\";");
             }
             else
             {
-                var parameters = page.Tokens
-                    .Select(t => (Name: SanitizeIdentifier(LowerFirst(t.Name)), Type: MapConstraintToType(t.Constraint), Token: t))
+                var parameters = page.Template.Parameters
+                    .Select(t => (
+                        Name: SanitizeIdentifier(LowerFirst(t.Name)),
+                        Type: MapConstraintToType(t.Constraint),
+                        Token: t))
                     .ToList();
 
-                string paramList = string.Join(", ", parameters.Select(p => $"{p.Type} {p.Name}"));
-                sb.Append("        public static string ").Append(page.MemberName).Append('(').Append(paramList).AppendLine(")");
-                sb.Append("            => $\"").Append(BuildInterpolated(page.Route, parameters)).AppendLine("\";");
+                string paramList = string.Join(
+                    ", ",
+                    parameters.Select(p => $"{p.Type} {p.Name}"));
+
+                sb.Append("        public static string ")
+                  .Append(page.MemberName)
+                  .Append('(')
+                  .Append(paramList)
+                  .AppendLine(")");
+
+                sb.Append("            => $\"")
+                  .Append(BuildInterpolated(page.Template, parameters))
+                  .AppendLine("\";");
             }
         }
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
+
         return sb.ToString();
     }
 
-    private static string BuildInterpolated(string route, List<(string Name, string Type, RouteToken Token)> parameters)
+    private static string BuildInterpolated(
+        RouteTemplate template,
+        List<(string Name, string Type, RouteParameterPart Token)> parameters)
     {
         var sb = new StringBuilder();
-        int i = 0;
-        while (i < route.Length)
-        {
-            if (route[i] == '{')
-            {
-                int close = route.IndexOf('}', i + 1);
-                if (close < 0) { sb.Append(route[i]); i++; continue; }
-                string inner = route.Substring(i + 1, close - i - 1);
-                i = close + 1;
-                string name = inner;
-                int colon = name.IndexOf(':');
-                if (colon >= 0) name = name.Substring(0, colon);
-                name = name.TrimEnd('?');
 
-                var match = parameters.FirstOrDefault(p => string.Equals(p.Token.Name, name, System.StringComparison.OrdinalIgnoreCase));
-                if (match.Name is not null)
-                {
-                    if (match.Type == "string")
-                        sb.Append("{Uri.EscapeDataString(").Append(match.Name).Append(")}");
-                    else
-                        sb.Append('{').Append(match.Name).Append('}');
-                }
-            }
-            else
+        foreach (var part in template.Parts)
+        {
+            if (part is RouteLiteralPart literal)
             {
-                sb.Append(route[i]);
-                i++;
+                foreach (char c in literal.Text)
+                {
+                    if (c == '"' || c == '\\')
+                        sb.Append('\\');
+
+                    sb.Append(c);
+                }
+
+                continue;
+            }
+
+            var parameter = (RouteParameterPart)part;
+            var match = parameters.FirstOrDefault(p =>
+                string.Equals(
+                    p.Token.Name,
+                    parameter.Name,
+                    System.StringComparison.OrdinalIgnoreCase));
+
+            if (match.Name is not null)
+            {
+                if (match.Type == "string")
+                    sb.Append("{Uri.EscapeDataString(").Append(match.Name).Append(")}");
+                else
+                    sb.Append('{').Append(match.Name).Append('}');
             }
         }
+
         return sb.ToString();
     }
 
@@ -182,21 +221,26 @@ public sealed class PageRouteGenerator : IIncrementalGenerator
         _ => "string"
     };
 
-    private static string LowerFirst(string s) => s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s.Substring(1);
+    private static string LowerFirst(string s) =>
+        s.Length == 0 ? s : char.ToLowerInvariant(s[0]) + s.Substring(1);
 
-    private static string EscapeString(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string EscapeString(string s) =>
+        s.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private sealed class PageRouteInfo
     {
         public string MemberName { get; }
         public string Route { get; }
-        public IReadOnlyList<RouteToken> Tokens { get; }
+        public RouteTemplate Template { get; }
 
-        public PageRouteInfo(string memberName, string route, IReadOnlyList<RouteToken> tokens)
+        public PageRouteInfo(
+            string memberName,
+            string route,
+            RouteTemplate template)
         {
             MemberName = memberName;
             Route = route;
-            Tokens = tokens;
+            Template = template;
         }
     }
 }

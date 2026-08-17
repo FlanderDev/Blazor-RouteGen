@@ -23,8 +23,7 @@ internal sealed class ApiInterfaceModel
 
     /// <summary>
     /// Generated type name stem, e.g. "Mods" from "IModsApi" (strips a leading "I" and a
-    /// trailing "Api" when present, so "ModsApiControllerBase" / "HttpModsApi" read naturally
-    /// instead of "ModsApiApiControllerBase").
+    /// trailing "Api" when present).
     /// </summary>
     public string ShortName
     {
@@ -45,6 +44,8 @@ internal sealed class ApiMethodModel
     public string Name { get; }
     public string Verb { get; }
     public string? RouteSuffix { get; }
+    public RouteTemplate RouteTemplate { get; }
+
     /// <summary>Full name of the Task&lt;T&gt; type argument, or null when the return type is bare Task.</summary>
     public string? ResponseTypeFullName { get; set; }
     public bool IsStreamResponse { get; set; }
@@ -54,11 +55,12 @@ internal sealed class ApiMethodModel
     public bool AllowAnonymous { get; set; }
     public List<ApiParameterModel> Parameters { get; } = [];
 
-    public ApiMethodModel(string name, string verb, string? routeSuffix)
+    public ApiMethodModel(string name, string verb, string? routeSuffix, RouteTemplate routeTemplate)
     {
         Name = name;
         Verb = verb;
         RouteSuffix = routeSuffix;
+        RouteTemplate = routeTemplate;
     }
 }
 

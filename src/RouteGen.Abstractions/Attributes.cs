@@ -1,4 +1,4 @@
-namespace RouteGen;
+namespace RouteGen.Abstractions;
 
 /// <summary>
 /// Marks an interface as the shared contract for an API surface. Applied once per interface
@@ -6,66 +6,62 @@ namespace RouteGen;
 /// via the semantic model in both the server and client compilations.
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface, Inherited = false, AllowMultiple = false)]
-public sealed class ApiRouteAttribute : Attribute
+public sealed class ApiRouteAttribute(string template) : Attribute
 {
     /// <summary>The base route template, e.g. "api/mods".</summary>
-    public string Template { get; }
+    public string Template { get; } = template;
 
     /// <summary>
     /// Name of the named <c>HttpClient</c> (registered via <c>IHttpClientFactory</c>) that the
     /// generated client implementation should resolve. Defaults to "Default" when not set.
     /// </summary>
     public string HttpClientName { get; set; } = "Default";
-
-    public ApiRouteAttribute(string template) => Template = template;
 }
 
 /// <summary>Base type for the per-method HTTP-verb attributes. Not intended to be used directly.</summary>
-public abstract class HttpMethodAttribute : Attribute
+/// <param name="template"></param>
+public abstract class HttpMethodAttribute(string? template) : Attribute
 {
     /// <summary>Route template suffix appended to the interface-level <see cref="ApiRouteAttribute"/> template. May be null/empty.</summary>
-    public string? Template { get; }
+    public string? Template { get; } = template;
 
     /// <summary>The HTTP verb this attribute represents (e.g. "GET").</summary>
     public abstract string Verb { get; }
-
-    protected HttpMethodAttribute(string? template) => Template = template;
 }
 
+#region HTTP Verb Attributes
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class GetAttribute : HttpMethodAttribute
+public sealed class GetAttribute(string? template = null) : HttpMethodAttribute(template)
 {
     public override string Verb => "GET";
-    public GetAttribute(string? template = null) : base(template) { }
 }
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class PostAttribute : HttpMethodAttribute
+public sealed class PostAttribute(string? template = null) : HttpMethodAttribute(template)
 {
     public override string Verb => "POST";
-    public PostAttribute(string? template = null) : base(template) { }
 }
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class PutAttribute : HttpMethodAttribute
+public sealed class PutAttribute(string? template = null) : HttpMethodAttribute(template)
 {
     public override string Verb => "PUT";
-    public PutAttribute(string? template = null) : base(template) { }
 }
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class DeleteAttribute : HttpMethodAttribute
+public sealed class DeleteAttribute(string? template = null) : HttpMethodAttribute(template)
 {
     public override string Verb => "DELETE";
-    public DeleteAttribute(string? template = null) : base(template) { }
 }
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class PatchAttribute : HttpMethodAttribute
+public sealed class PatchAttribute(string? template = null) : HttpMethodAttribute(template)
 {
     public override string Verb => "PATCH";
-    public PatchAttribute(string? template = null) : base(template) { }
 }
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#endregion
 
 /// <summary>Marks a parameter as bound from the query string. Optional/nullable parameters are omitted from the generated client's query string when null/default.</summary>
 [AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
@@ -80,10 +76,9 @@ public sealed class BodyAttribute : Attribute { }
 /// when it differs from the parameter's own name (route parameters are inferred by name-matching by default).
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
-public sealed class RouteAttribute : Attribute
+public sealed class RouteAttribute(string? name = null) : Attribute
 {
-    public string? Name { get; }
-    public RouteAttribute(string? name = null) => Name = name;
+    public string? Name { get; } = name;
 }
 
 /// <summary>
@@ -108,8 +103,7 @@ public sealed class AllowAnonymousAttribute : Attribute { }
 /// derived name would be ambiguous or undesirable.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class GeneratedPathNameAttribute : Attribute
+public sealed class GeneratedPathNameAttribute(string name) : Attribute
 {
-    public string Name { get; }
-    public GeneratedPathNameAttribute(string name) => Name = name;
+    public string Name { get; } = name;
 }

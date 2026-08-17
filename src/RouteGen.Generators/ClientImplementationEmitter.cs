@@ -40,63 +40,76 @@ internal static class ClientImplementationEmitter
         sb.AppendLine();
 
         foreach (var method in model.Methods)
-        {
-            EmitClientMethod(sb, indent + "    ", model, method);
-        }
+            EmitClientMethod(sb, indent + "    ", method);
 
         sb.Append(indent).AppendLine("}");
-        if (hasNamespace) sb.AppendLine("}");
 
+        if (hasNamespace) sb.AppendLine("}");
         return sb.ToString();
     }
 
-    private static void EmitClientMethod(StringBuilder sb, string indent, ApiInterfaceModel model, ApiMethodModel method)
+    private static void EmitClientMethod(
+        StringBuilder sb,
+        string indent,
+        ApiMethodModel method)
     {
         string returnType = method.ResponseTypeFullName is null
             ? "global::System.Threading.Tasks.Task"
             : $"global::System.Threading.Tasks.Task<{method.ResponseTypeFullName}>";
 
         var paramList = string.Join(", ", method.Parameters.Select(FormatParameter));
-        sb.Append(indent).Append("public async ").Append(returnType).Append(' ').Append(method.Name)
-          .Append('(').Append(paramList).AppendLine(")");
+
+        sb.Append(indent).Append("public async ").Append(returnType).Append(' ')
+          .Append(method.Name).Append('(').Append(paramList).AppendLine(")");
         sb.Append(indent).AppendLine("{");
 
         string bodyIndent = indent + "    ";
 
-        string template = RouteTemplateParser.Combine(model.BaseRoute, method.RouteSuffix);
-        var tokens = RouteTemplateParser.ExtractTokens(template);
-
         sb.Append(bodyIndent).Append("var __url = new StringBuilder(\"");
-        sb.Append(BuildInterpolatedTemplateLiteral(template, method));
+        sb.Append(BuildInterpolatedTemplateLiteral(method.RouteTemplate, method));
         sb.AppendLine("\");");
 
         var queryParams = method.Parameters.Where(p => p.Kind == ParameterKind.Query).ToList();
         if (queryParams.Count > 0)
         {
-            sb.Append(bodyIndent).AppendLine("var __query = new System.Collections.Generic.List<string>();");
+            sb.Append(bodyIndent).AppendLine(
+                "var __query = new System.Collections.Generic.List<string>();");
+
             foreach (var q in queryParams)
             {
                 if (q.TypeFullName.EndsWith("?"))
                 {
                     bool isNullableString = q.TypeFullName == "string?";
                     string valueExpr = isNullableString ? q.Name : q.Name + ".Value.ToString()";
+
                     sb.Append(bodyIndent).Append("if (").Append(q.Name).AppendLine(" is not null)");
                     sb.Append(bodyIndent).Append("    __query.Add($\"")
-                      .Append(q.Name).Append("={Uri.EscapeDataString(").Append(valueExpr).AppendLine(" ?? string.Empty)}\");");
+                      .Append(q.Name)
+                      .Append("={Uri.EscapeDataString(")
+                      .Append(valueExpr)
+                      .AppendLine(" ?? string.Empty)}\");");
                 }
                 else
                 {
-                    sb.Append(bodyIndent).Append("__query.Add($\"").Append(q.Name)
-                      .Append("={Uri.EscapeDataString(").Append(q.Name).AppendLine(".ToString() ?? string.Empty)}\");");
+                    sb.Append(bodyIndent).Append("__query.Add($\"")
+                      .Append(q.Name)
+                      .Append("={Uri.EscapeDataString(")
+                      .Append(q.Name)
+                      .AppendLine(".ToString() ?? string.Empty)}\");");
                 }
             }
-            sb.Append(bodyIndent).AppendLine("if (__query.Count > 0) __url.Append('?').Append(string.Join(\"&\", __query));");
+
+            sb.Append(bodyIndent)
+              .AppendLine("if (__query.Count > 0) __url.Append('?').Append(string.Join(\"&\", __query));");
         }
 
-        var ctParam = method.Parameters.FirstOrDefault(p => p.Kind == ParameterKind.CancellationToken);
+        var ctParam = method.Parameters.FirstOrDefault(
+            p => p.Kind == ParameterKind.CancellationToken);
+
         string ctArg = ctParam is not null ? ctParam.Name : "CancellationToken.None";
 
-        var bodyParam = method.Parameters.FirstOrDefault(p => p.Kind == ParameterKind.Body);
+        var bodyParam = method.Parameters.FirstOrDefault(
+            p => p.Kind == ParameterKind.Body);
 
         string httpCall = method.Verb switch
         {
@@ -117,8 +130,10 @@ internal static class ClientImplementationEmitter
         sb.Append(bodyIndent).Append("var __response = await ").Append(httpCall).AppendLine(";");
         sb.Append(bodyIndent).AppendLine("if (!__response.IsSuccessStatusCode)");
         sb.Append(bodyIndent).AppendLine("{");
-        sb.Append(bodyIndent).Append("    var __errorBody = await __response.Content.ReadAsStringAsync(").Append(ctParam is not null ? ctArg : "").AppendLine(");");
-        sb.Append(bodyIndent).AppendLine("    throw new global::RouteGen.ApiException(__response.StatusCode, __errorBody);");
+        sb.Append(bodyIndent).Append("    var __errorBody = await __response.Content.ReadAsStringAsync(")
+          .Append(ctParam is not null ? ctArg : "").AppendLine(");");
+        sb.Append(bodyIndent)
+          .AppendLine("    throw new global::RouteGen.ApiException(__response.StatusCode, __errorBody);");
         sb.Append(bodyIndent).AppendLine("}");
 
         if (method.ResponseTypeFullName is null)
@@ -127,61 +142,76 @@ internal static class ClientImplementationEmitter
         }
         else if (method.IsStreamResponse)
         {
-            sb.Append(bodyIndent).Append("return await __response.Content.ReadAsStreamAsync(").Append(ctParam is not null ? ctArg : "").AppendLine(");");
+            sb.Append(bodyIndent).Append("return await __response.Content.ReadAsStreamAsync(")
+              .Append(ctParam is not null ? ctArg : "").AppendLine(");");
         }
         else
         {
             sb.Append(bodyIndent).Append("return (await __response.Content.ReadFromJsonAsync<")
-              .Append(method.ResponseTypeFullName).Append(">(cancellationToken: ").Append(ctArg).AppendLine("))!;");
+              .Append(method.ResponseTypeFullName)
+              .Append(">(cancellationToken: ")
+              .Append(ctArg)
+              .AppendLine("))!;");
         }
 
         sb.Append(indent).AppendLine("}");
         sb.AppendLine();
     }
 
-    private static string BuildInterpolatedTemplateLiteral(string template, ApiMethodModel method)
+    private static string BuildInterpolatedTemplateLiteral(
+        RouteTemplate template,
+        ApiMethodModel method)
     {
         var sb = new StringBuilder();
-        int i = 0;
-        while (i < template.Length)
+
+        foreach (var part in template.Parts)
         {
-            if (template[i] == '{')
+            if (part is RouteLiteralPart literal)
             {
-                int close = template.IndexOf('}', i + 1);
-                if (close < 0) { sb.Append(template[i]); i++; continue; }
-                string inner = template.Substring(i + 1, close - i - 1);
-                i = close + 1;
-                string name = inner;
-                int colon = name.IndexOf(':');
-                if (colon >= 0) name = name.Substring(0, colon);
-                name = name.TrimEnd('?');
-                int eq = name.IndexOf('=');
-                if (eq >= 0) name = name.Substring(0, eq);
-
-                var param = method.Parameters.FirstOrDefault(p =>
-                    p.MatchesRouteToken &&
-                    string.Equals(p.RouteTokenNameOverride ?? p.Name, name, System.StringComparison.OrdinalIgnoreCase));
-
-                if (param is not null)
+                foreach (char c in literal.Text)
                 {
-                    sb.Append("\" + Uri.EscapeDataString(").Append(param.Name).Append(".ToString() ?? string.Empty) + \"");
+                    if (c == '"' || c == '\\')
+                        sb.Append('\\');
+
+                    sb.Append(c);
                 }
-                else
-                {
-                    sb.Append('{').Append(inner).Append('}');
-                }
+
+                continue;
             }
-            else if (template[i] == '"' || template[i] == '\\')
+
+            var parameter = (RouteParameterPart)part;
+            var param = method.Parameters.FirstOrDefault(p =>
+                p.MatchesRouteToken &&
+                string.Equals(
+                    p.RouteTokenNameOverride ?? p.Name,
+                    parameter.Name,
+                    System.StringComparison.OrdinalIgnoreCase));
+
+            if (param is not null)
             {
-                sb.Append('\\').Append(template[i]);
-                i++;
+                sb.Append("\" + Uri.EscapeDataString(")
+                  .Append(param.Name)
+                  .Append(".ToString() ?? string.Empty) + \"");
             }
             else
             {
-                sb.Append(template[i]);
-                i++;
+                // This should normally have produced a diagnostic in ApiInterfaceReader.
+                // Preserve the original token so source generation remains non-throwing.
+                sb.Append('{').Append(parameter.Name);
+
+                if (!string.IsNullOrEmpty(parameter.Constraint))
+                    sb.Append(':').Append(parameter.Constraint);
+
+                if (!string.IsNullOrEmpty(parameter.DefaultValue))
+                    sb.Append('=').Append(parameter.DefaultValue);
+
+                if (parameter.Optional)
+                    sb.Append('?');
+
+                sb.Append('}');
             }
         }
+
         return sb.ToString();
     }
 
@@ -191,10 +221,13 @@ internal static class ClientImplementationEmitter
             return "CancellationToken " + p.Name + " = default";
 
         string result = p.TypeFullName + " " + p.Name;
+
         if (p.HasDefaultValue)
             result += " = " + p.DefaultValueLiteral;
+
         return result;
     }
 
-    private static string EscapeString(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string EscapeString(string s) =>
+        s.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }
