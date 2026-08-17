@@ -300,7 +300,7 @@ internal static class ApiInterfaceReader
     private static void DetectRouteCollisions(
          ApiInterfaceModel model,
          List<Diagnostic> diagnostics)
-     {
+    {
         var seen = new Dictionary<string, ApiMethodModel>();
 
         foreach (var m in model.Methods)
