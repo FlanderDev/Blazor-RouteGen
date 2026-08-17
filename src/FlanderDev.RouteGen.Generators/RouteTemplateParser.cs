@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 /// <summary>
 /// A parsed route template. The parser deliberately keeps ASP.NET Core route constraints as

@@ -34,11 +34,11 @@ are never hand-typed either.
 ## Installation
 
 ```bash
-dotnet add package RouteGen.Abstractions
+dotnet add package FlanderDev.RouteGen.Abstractions
 dotnet add package RouteGen --version 0.1.0
 ```
 
-`RouteGen.Abstractions` ships the attributes (`[ApiRoute]`, `[Get]`, `[Query]`, ...) and the
+`FlanderDev.RouteGen.Abstractions` ships the attributes (`[ApiRoute]`, `[Get]`, `[Query]`, ...) and the
 `ApiException` runtime type — reference it from your Shared, Server, and Client projects.
 `RouteGen` is the analyzer package containing the generators themselves; add it (as
 `PrivateAssets="all"`, which `dotnet add package` sets automatically for analyzer packages) to
@@ -194,7 +194,7 @@ dotnet run --project samples/SampleApp.Server
 ```
 
 After a build, inspect the generated files under
-`samples/SampleApp.Server/obj/**/generated/RouteGen.Generators/RouteGen.Generators.ApiContractGenerator/`
+`samples/SampleApp.Server/obj/**/generated/FlanderDev.RouteGen.Generators/FlanderDev.RouteGen.Generators.ApiContractGenerator/`
 and the equivalent path under `SampleApp.Client/obj/**` to see the emitted controller base and client
 implementation.
 
@@ -232,7 +232,7 @@ carry over unchanged when that emitter is added; only the server-side emission t
 - Packaged as a correct Roslyn analyzer NuGet package: empty `lib/`, the generator DLL under
   `analyzers/dotnet/cs/`, and `DevelopmentDependency`/`PrivateAssets="all"` set so the generator
   doesn't leak into consumers' consumers. The attribute *definitions* and `ApiException` live in
-  the separate `RouteGen.Abstractions` package (referenced normally, not as an analyzer) since
+  the separate `FlanderDev.RouteGen.Abstractions` package (referenced normally, not as an analyzer) since
   consumers need to see those types in source — bundling them only inside the analyzer package
   would make that impossible.
 
@@ -259,8 +259,8 @@ carry over unchanged when that emitter is added; only the server-side emission t
 
 ```
 src/
-  RouteGen.Abstractions/   attributes + ApiException (normal package reference)
-  RouteGen.Generators/     the incremental generators (analyzer package)
+  FlanderDev.RouteGen.Abstractions/   attributes + ApiException (normal package reference)
+  FlanderDev.RouteGen.Generators/     the incremental generators (analyzer package)
 samples/
   SampleApp.Shared/              the one hand-written interface + DTOs
   SampleApp.Server/              thin controller over the generated abstract base

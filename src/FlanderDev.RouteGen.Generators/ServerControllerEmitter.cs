@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Text;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 internal static class ServerControllerEmitter
 {

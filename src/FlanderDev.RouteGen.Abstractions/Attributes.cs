@@ -1,4 +1,4 @@
-namespace RouteGen.Abstractions;
+namespace FlanderDev.RouteGen.Abstractions;
 
 /// <summary>
 /// Marks an interface as the shared contract for an API surface. Applied once per interface

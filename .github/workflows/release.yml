@@ -2,7 +2,7 @@ name: Release
 
 # Builds the abstractions + generator packages on every push/PR to main and on every push to
 # "release". A push to "release" also cuts a GitHub Release: the version is read straight out of
-# RouteGen.Abstractions.csproj (the single source of truth -- both packages are packed with that
+# FlanderDev.RouteGen.Abstractions.csproj (the single source of truth -- both packages are packed with that
 # same version, so they can never drift apart), and a matching vX.Y.Z tag is created automatically.
 on:
   push:
@@ -26,9 +26,9 @@ jobs:
       - name: Read version from project file
         id: version
         run: |
-          VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' src/RouteGen.Abstractions/RouteGen.Abstractions.csproj)
+          VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' src/FlanderDev.RouteGen.Abstractions/FlanderDev.RouteGen.Abstractions.csproj)
           if [ -z "$VERSION" ]; then
-            echo "::error::Could not find <Version> in src/RouteGen.Abstractions/RouteGen.Abstractions.csproj"
+            echo "::error::Could not find <Version> in src/FlanderDev.RouteGen.Abstractions/FlanderDev.RouteGen.Abstractions.csproj"
             exit 1
           fi
           echo "Resolved version: $VERSION"
@@ -41,13 +41,13 @@ jobs:
         run: dotnet build RouteGen.sln --configuration Release --no-restore
 
       - name: Pack
-        # -p:Version pins both packages to the version read above, so RouteGen.Generators can
-        # never accidentally ship out of sync with RouteGen.Abstractions even if its own csproj
+        # -p:Version pins both packages to the version read above, so FlanderDev.RouteGen.Generators can
+        # never accidentally ship out of sync with FlanderDev.RouteGen.Abstractions even if its own csproj
         # wasn't updated to match.
         run: |
-          dotnet pack src/RouteGen.Abstractions/RouteGen.Abstractions.csproj \
+          dotnet pack src/FlanderDev.RouteGen.Abstractions/FlanderDev.RouteGen.Abstractions.csproj \
             --configuration Release --no-build --output ./artifacts -p:Version=${{ steps.version.outputs.version }}
-          dotnet pack src/RouteGen.Generators/RouteGen.Generators.csproj \
+          dotnet pack src/FlanderDev.RouteGen.Generators/FlanderDev.RouteGen.Generators.csproj \
             --configuration Release --output ./artifacts -p:Version=${{ steps.version.outputs.version }}
 
       - name: Upload package artifacts

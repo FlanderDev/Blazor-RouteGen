@@ -9,10 +9,10 @@
 
   <ItemGroup>
     <!-- In a real solution, replace this with:
-         <PackageReference Include="RouteGen.Abstractions" Version="0.1.0" />
+         <PackageReference Include="FlanderDev.RouteGen.Abstractions" Version="0.1.0" />
          Shared only needs the attribute definitions; the generator itself runs in the Server
          and Client projects below, which are the ones that need generated output. -->
-    <ProjectReference Include="..\..\src\RouteGen.Abstractions\RouteGen.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\FlanderDev.RouteGen.Abstractions\FlanderDev.RouteGen.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

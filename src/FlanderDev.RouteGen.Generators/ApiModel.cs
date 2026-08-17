@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 /// <summary>Parsed representation of a single <c>[ApiRoute]</c>-decorated interface.</summary>
 internal sealed class ApiInterfaceModel

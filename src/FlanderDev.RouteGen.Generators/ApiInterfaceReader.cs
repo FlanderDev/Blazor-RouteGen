@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 /// <summary>
 /// Builds an <see cref="ApiInterfaceModel"/> from an <c>[ApiRoute]</c>-decorated interface symbol,
@@ -29,7 +29,7 @@ internal static class ApiInterfaceReader
         List<Diagnostic> diagnostics)
     {
         var apiRouteAttr = interfaceSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.ApiRouteAttribute");
+            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.ApiRouteAttribute");
         if (apiRouteAttr is null) return null;
 
         var model = new ApiInterfaceModel(
@@ -77,11 +77,11 @@ internal static class ApiInterfaceReader
             var name = attr.AttributeClass?.ToDisplayString();
             string? verb = name switch
             {
-                "RouteGen.Abstractions.GetAttribute" => "GET",
-                "RouteGen.Abstractions.PostAttribute" => "POST",
-                "RouteGen.Abstractions.PutAttribute" => "PUT",
-                "RouteGen.Abstractions.DeleteAttribute" => "DELETE",
-                "RouteGen.Abstractions.PatchAttribute" => "PATCH",
+                "FlanderDev.RouteGen.Abstractions.GetAttribute" => "GET",
+                "FlanderDev.RouteGen.Abstractions.PostAttribute" => "POST",
+                "FlanderDev.RouteGen.Abstractions.PutAttribute" => "PUT",
+                "FlanderDev.RouteGen.Abstractions.DeleteAttribute" => "DELETE",
+                "FlanderDev.RouteGen.Abstractions.PatchAttribute" => "PATCH",
                 _ => null
             };
 
@@ -100,7 +100,7 @@ internal static class ApiInterfaceReader
 
         var (methodAuth, roles, policy) = ReadAuthorize(method.GetAttributes());
         bool allowAnonymous = method.GetAttributes()
-            .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.AllowAnonymousAttribute");
+            .Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.AllowAnonymousAttribute");
 
         string combinedTemplate = RouteTemplateParser.Combine(owner.BaseRoute, verbInfo.Value.Suffix);
         RouteTemplate routeTemplate = RouteTemplateParser.Parse(combinedTemplate);
@@ -171,13 +171,13 @@ internal static class ApiInterfaceReader
             }
 
             bool isQuery = param.GetAttributes()
-                .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.QueryAttribute");
+                .Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.QueryAttribute");
 
             bool isBody = param.GetAttributes()
-                .Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.BodyAttribute");
+                .Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.BodyAttribute");
 
             var routeOverride = param.GetAttributes()
-                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.RouteAttribute");
+                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.RouteAttribute");
 
             string? overrideTokenName = null;
             if (routeOverride is not null && routeOverride.ConstructorArguments.Length > 0)
@@ -322,7 +322,7 @@ internal static class ApiInterfaceReader
         ImmutableArray<AttributeData> attributes)
     {
         var attr = attributes.FirstOrDefault(
-            a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.AuthorizeAttribute");
+            a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.AuthorizeAttribute");
 
         if (attr is null) return (false, null, null);
 

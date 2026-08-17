@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace RouteGen.Abstractions;
+namespace FlanderDev.RouteGen.Abstractions;
 
 /// <summary>
 /// Thrown by generated client implementations when an API call returns a non-success status

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 /// <summary>
 /// Finds every <c>[ApiRoute]</c>-decorated interface reachable from the current compilation --
@@ -36,9 +36,9 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
         {
             bool isServer = compilation.GetTypeByMetadataName("Microsoft.AspNetCore.Mvc.ControllerBase") is not null;
 
-            // Bail out entirely if this compilation doesn't reference RouteGen.Abstractions --
+            // Bail out entirely if this compilation doesn't reference FlanderDev.RouteGen.Abstractions --
             // there is nothing to find, and no reason to pay for walking every referenced assembly.
-            if (compilation.GetTypeByMetadataName("RouteGen.Abstractions.ApiRouteAttribute") is null)
+            if (compilation.GetTypeByMetadataName("FlanderDev.RouteGen.Abstractions.ApiRouteAttribute") is null)
                 return (Interfaces: [], IsServer: isServer);
 
             var found = new List<INamedTypeSymbol>();
@@ -105,7 +105,7 @@ public sealed class ApiContractGenerator : IIncrementalGenerator
     private static void CollectIfAttributed(INamedTypeSymbol type, List<INamedTypeSymbol> results, HashSet<string> seen)
     {
         if (type.TypeKind != TypeKind.Interface) return;
-        if (!type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "RouteGen.Abstractions.ApiRouteAttribute")) return;
+        if (!type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "FlanderDev.RouteGen.Abstractions.ApiRouteAttribute")) return;
 
         string key = type.ToDisplayString();
         if (seen.Add(key)) results.Add(type);

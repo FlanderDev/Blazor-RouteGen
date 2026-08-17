@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 internal static class RouteGenDiagnostics
 {

@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="bin\Debug\netstandard2.0\\RouteGen.Generators.dll" />
+    <None Remove="bin\Debug\netstandard2.0\\FlanderDev.RouteGen.Generators.dll" />
   </ItemGroup>
 
   <!-- Pack the generator DLL into analyzers/dotnet/cs so `dotnet add package` wires it up as an

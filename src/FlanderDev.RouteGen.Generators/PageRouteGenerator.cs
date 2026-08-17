@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace RouteGen.Generators;
+namespace FlanderDev.RouteGen.Generators;
 
 /// <summary>
 /// Scans every <c>.razor</c> file passed to the compilation as an <c>AdditionalText</c> for

@@ -6,7 +6,7 @@ namespace SampleApp.Server.Controllers;
 
 // Thin concrete controller: no route attributes, no route strings, anywhere. All routing,
 // binding, and [Authorize] behavior comes from the RouteGen-generated ModsApiControllerBase
-// (see obj/**/generated/RouteGen.Generators/.../Server_IModsApi.g.cs after build).
+// (see obj/**/generated/FlanderDev.RouteGen.Generators/.../Server_IModsApi.g.cs after build).
 public sealed class ModsController(IModsService service) : ModsApiControllerBase
 {
     public override async Task<ActionResult<ModListResult>> GetMods(int page, int pageSize, string? search)
