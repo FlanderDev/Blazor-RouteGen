@@ -1,9 +1,5 @@
 name: Release
 
-# Builds the abstractions + generator packages on every push/PR to main and on every push to
-# "release". A push to "release" also cuts a GitHub Release: the version is read straight out of
-# FlanderDev.RouteGen.Abstractions.csproj (the single source of truth -- both packages are packed with that
-# same version, so they can never drift apart), and a matching vX.Y.Z tag is created automatically.
 on:
   push:
     branches: [main, release]
@@ -41,9 +37,6 @@ jobs:
         run: dotnet build FlanderDev.RouteGen.sln --configuration Release --no-restore
 
       - name: Pack
-        # -p:Version pins both packages to the version read above, so FlanderDev.RouteGen.Generators can
-        # never accidentally ship out of sync with FlanderDev.RouteGen.Abstractions even if its own csproj
-        # wasn't updated to match.
         run: |
           dotnet pack src/FlanderDev.RouteGen.Abstractions/FlanderDev.RouteGen.Abstractions.csproj \
             --configuration Release --no-build --output ./artifacts -p:Version=${{ steps.version.outputs.version }}
@@ -58,7 +51,7 @@ jobs:
 
   release:
     needs: build
-    if: github.ref == 'refs/heads/release'
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,7 +73,7 @@ jobs:
 
   publish:
     needs: [build, release] # if release fails for some reason, then something is very wrong.
-    if: github.ref == 'refs/heads/release'
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     permissions:
         contents: read

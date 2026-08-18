@@ -5,7 +5,7 @@
 		<Nullable>enable</Nullable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<PackageId>RouteGen</PackageId>
+		<PackageId>FlanderDev.RouteGen.Generators</PackageId>
 		<Authors>FlanderDev</Authors>
 		<Description>Roslyn incremental source generators that eliminate hand-maintained route/URL constants in Blazor WebAssembly Hosted + ASP.NET Core solutions. Declare an API once as an attributed interface in a shared project; RouteGen generates a routed abstract MVC controller base for the server and a strongly-typed HttpClient implementation for the client, plus a Paths class generated from @page directives.</Description>
 		<PackageTags>roslyn;source-generator;blazor;aspnetcore;routing;codegen</PackageTags>
