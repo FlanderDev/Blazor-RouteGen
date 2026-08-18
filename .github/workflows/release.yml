@@ -50,6 +50,9 @@ jobs:
           dotnet pack src/FlanderDev.RouteGen.Generators/FlanderDev.RouteGen.Generators.csproj \
             --configuration Release --output ./artifacts -p:Version=${{ steps.version.outputs.version }}
 
+      - name: Pack
+        run: ls -l ./artifacts
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
