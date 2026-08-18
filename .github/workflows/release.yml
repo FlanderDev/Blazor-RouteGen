@@ -35,10 +35,10 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Restore
-        run: dotnet restore RouteGen.sln
+        run: dotnet restore FlanderDev.RouteGen.sln
 
       - name: Build
-        run: dotnet build RouteGen.sln --configuration Release --no-restore
+        run: dotnet build FlanderDev.RouteGen.sln --configuration Release --no-restore
 
       - name: Pack
         # -p:Version pins both packages to the version read above, so FlanderDev.RouteGen.Generators can
