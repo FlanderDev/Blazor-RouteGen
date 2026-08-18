@@ -2,9 +2,9 @@ name: Release
 
 on:
   push:
-    branches: [main, release]
+    branches: [develop, release]
   pull_request:
-    branches: [main]
+    branches: [develop]
 
 jobs:
   build:
