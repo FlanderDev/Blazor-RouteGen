@@ -1,6 +1,6 @@
 # FlanderDev.RouteGen.Generators
 
-Roslyn source generators for [RouteGen](https://github.com/FlanderDev/RouteGen).
+Roslyn source generators for [RouteGen](https://codeberg.org/FlanderDev/RouteGen).
 
 This package generates:
 
